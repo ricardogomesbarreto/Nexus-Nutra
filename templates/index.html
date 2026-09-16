@@ -1,44 +1,54 @@
-{% extends "base.html" %}
-
-{% block title %}LifeTrack - Home{% endblock %}
-
-{% block content %}
-<div class="card" style="text-align: center; max-width: 800px; margin: 0 auto;">
-    <div style="margin-bottom: 2rem;">
-        <i class="fas fa-leaf" style="font-size: 5rem; color: #2ecc71;"></i>
-        <h1 style="color: #2c3e50; margin: 1rem 0; font-size: 2.5rem;">LifeTrack</h1>
-        <p style="font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 2rem;">
-            Seu companheiro diário para desenvolver hábitos saudáveis e alcançar seus objetivos!
-        </p>
+{% extends 'base.html' %}
+{% block title %}Nexus Nutra — Nutrição conectada{% endblock %}
+{% block public_content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">PLATAFORMA DE CUIDADO NUTRICIONAL</span>
+    <h1>Mais tempo para cuidar.<br><em>Mais clareza para evoluir.</em></h1>
+    <p>Consultório, plano alimentar e acompanhamento do paciente em uma experiência simples, humana e conectada.</p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="{{ url_for('main.register') }}">Começar agora <span>→</span></a>
+      <a class="button button-secondary" href="#recursos">Conhecer a plataforma</a>
     </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 3rem 0;">
-        <div style="padding: 1.5rem;">
-            <i class="fas fa-check-circle" style="font-size: 2.5rem; color: #2ecc71; margin-bottom: 1rem;"></i>
-            <h3 style="margin-bottom: 0.5rem;">Registre Hábitos</h3>
-            <p style="color: #666;">Acompanhe seus hábitos diários e veja seu progresso</p>
+    <div class="trust-row"><span>✓ Dados organizados</span><span>✓ Experiência responsiva</span><span>✓ Feito para o Brasil</span></div>
+  </div>
+  <div class="hero-visual" aria-label="Prévia do painel Nexus Nutra">
+    <div class="preview-window">
+      <div class="preview-top"><span></span><span></span><span></span><strong>Nexus Nutra</strong></div>
+      <div class="preview-body">
+        <div class="preview-sidebar"></div>
+        <div class="preview-content">
+          <div class="preview-heading"><div><small>Bom dia, Dra. Marina</small><b>Visão geral</b></div><button>+ Novo paciente</button></div>
+          <div class="preview-stats"><span><small>Pacientes ativos</small><b>48</b></span><span><small>Consultas hoje</small><b>06</b></span><span><small>Adesão média</small><b>87%</b></span></div>
+          <div class="preview-chart"><b>Evolução dos pacientes</b><div class="chart-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
         </div>
-        
-        <div style="padding: 1.5rem;">
-            <i class="fas fa-chart-line" style="font-size: 2.5rem; color: #2ecc71; margin-bottom: 1rem;"></i>
-            <h3 style="margin-bottom: 0.5rem;">Monitore Progresso</h3>
-            <p style="color: #666;">Visualize sua evolução ao longo do tempo</p>
-        </div>
-        
-        <div style="padding: 1.5rem;">
-            <i class="fas fa-trophy" style="font-size: 2.5rem; color: #2ecc71; margin-bottom: 1rem;"></i>
-            <h3 style="margin-bottom: 0.5rem;">Alcance Metas</h3>
-            <p style="color: #666;">Receba dicas personalizadas para seus objetivos</p>
-        </div>
+      </div>
     </div>
+    <div class="floating-card"><span class="floating-icon">✓</span><div><strong>Plano publicado</strong><small>O paciente já foi notificado</small></div></div>
+  </div>
+</section>
 
-    <div style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 2rem;">
-        <a href="{{ url_for('login') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem;">
-            <i class="fas fa-sign-in-alt"></i> Login
-        </a>
-        <a href="{{ url_for('cadastro') }}" class="btn btn-outline" style="padding: 1rem 2.5rem; font-size: 1.1rem;">
-            <i class="fas fa-user-plus"></i> Cadastre-se
-        </a>
-    </div>
-</div>
+<section class="logo-band"><span>UMA ROTINA MAIS LEVE PARA</span><b>Consultórios</b><b>Clínicas</b><b>Nutricionistas</b><b>Pacientes</b></section>
+
+<section class="section" id="recursos">
+  <div class="section-heading"><span class="eyebrow">TUDO EM UM SÓ LUGAR</span><h2>Do primeiro contato ao acompanhamento diário</h2><p>Fluxos essenciais reunidos para reduzir tarefas repetitivas e aproximar profissional e paciente.</p></div>
+  <div class="feature-grid">
+    <article class="feature-card featured"><span class="feature-icon">⌁</span><h3>Planos alimentares inteligentes</h3><p>Monte refeições com cálculo automático de calorias, macros e micronutrientes.</p><span class="feature-tag">Cálculo em tempo real</span></article>
+    <article class="feature-card"><span class="feature-icon">♙</span><h3>Gestão de pacientes</h3><p>Histórico, objetivos, peso, adesão e plano atual em uma visão clínica organizada.</p></article>
+    <article class="feature-card"><span class="feature-icon">↗</span><h3>Evolução visual</h3><p>Gráficos claros transformam registros em conversas mais objetivas nas consultas.</p></article>
+    <article class="feature-card"><span class="feature-icon">◌</span><h3>Canal de mensagens</h3><p>Dúvidas e orientações permanecem junto ao acompanhamento, sem perder contexto.</p></article>
+    <article class="feature-card"><span class="feature-icon">□</span><h3>Agenda e consulta online</h3><p>Organize atendimentos presenciais ou remotos e centralize o link da consulta.</p></article>
+    <article class="feature-card"><span class="feature-icon">◫</span><h3>Diário alimentar</h3><p>O paciente registra refeições, fome e adesão para um retorno mais fiel.</p></article>
+  </div>
+</section>
+
+<section class="split-section" id="para-quem">
+  <div><span class="eyebrow">CUIDADO COMPARTILHADO</span><h2>Uma experiência para cada lado do acompanhamento</h2></div>
+  <div class="audience-grid">
+    <article><span>PARA NUTRICIONISTAS</span><h3>Decisões melhores, rotina organizada</h3><ul><li>Cadastro e visão clínica dos pacientes</li><li>Planos com totais nutricionais automáticos</li><li>Agenda, evolução e conversas centralizadas</li></ul></article>
+    <article><span>PARA PACIENTES</span><h3>O plano sempre perto, no ritmo da vida real</h3><ul><li>Plano alimentar fácil de consultar</li><li>Diário, peso e consultas em poucos toques</li><li>Contato direto com o nutricionista</li></ul></article>
+  </div>
+</section>
+
+<section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('main.register') }}">Criar minha conta →</a></section>
 {% endblock %}

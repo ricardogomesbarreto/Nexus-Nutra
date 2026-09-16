@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}{{ code }} — Nexus Nutra{% endblock %}
+{% if g.user %}{% block content %}<section class="empty-state error-page"><b>{{ code }}</b><h1>{{ message }}</h1><a class="button button-primary" href="{{ url_for('main.dashboard') }}">Voltar ao início</a></section>{% endblock %}{% else %}{% block public_content %}<section class="empty-state error-page"><b>{{ code }}</b><h1>{{ message }}</h1><a class="button button-primary" href="{{ url_for('main.index') }}">Voltar ao início</a></section>{% endblock %}{% endif %}

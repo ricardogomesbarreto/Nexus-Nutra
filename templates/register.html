@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Criar conta — Nexus Nutra{% endblock %}
+{% block public_content %}
+<section class="auth-layout register-layout">
+  <div class="auth-pitch"><span class="eyebrow">PRIMEIROS PASSOS</span><h1>Um só espaço para uma jornada mais saudável.</h1><p>Crie seu acesso profissional ou conecte-se ao acompanhamento do seu nutricionista.</p><div class="auth-benefits"><span>✓ Plano alimentar acessível</span><span>✓ Comunicação centralizada</span><span>✓ Evolução registrada</span></div></div>
+  <div class="auth-card">
+    <div class="auth-heading"><h2>Criar conta</h2><p>Leva menos de dois minutos.</p></div>
+    <form method="post" class="form-stack" data-role-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="role-picker">
+        <label><input type="radio" name="role" value="nutritionist" checked><span><b>Sou nutricionista</b><small>Gerenciar pacientes</small></span></label>
+        <label><input type="radio" name="role" value="patient"><span><b>Sou paciente</b><small>Acompanhar meu plano</small></span></label>
+      </div>
+      <label>Nome completo<input type="text" name="name" autocomplete="name" required minlength="3" placeholder="Seu nome"></label>
+      <label>E-mail<input type="email" name="email" autocomplete="email" required placeholder="voce@exemplo.com"></label>
+      <label data-nutritionist-field>CRN<input type="text" name="crn" placeholder="Ex.: CRN-6 12345"></label>
+      <label class="hidden" data-patient-field>E-mail do nutricionista <span class="optional">opcional</span><input type="email" name="nutritionist_email" placeholder="nutri@exemplo.com"><small>Use para vincular sua conta automaticamente.</small></label>
+      <label>Senha<input type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo de 8 caracteres"></label>
+      <button class="button button-primary button-block" type="submit">Criar minha conta</button>
+    </form>
+    <p class="auth-switch">Já tem acesso? <a href="{{ url_for('main.login') }}">Entrar</a></p>
+  </div>
+</section>
+{% endblock %}

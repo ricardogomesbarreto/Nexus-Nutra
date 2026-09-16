@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Novo plano alimentar — Nexus Nutra{% endblock %}
+{% block content %}
+<header class="page-header with-action"><div><a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Prontuário de {{ patient.name }}</a><span class="eyebrow">PRESCRIÇÃO NUTRICIONAL</span><h1>Novo plano alimentar</h1><p>Os totais são recalculados automaticamente a cada item.</p></div><div class="patient-chip"><span class="avatar">{{ patient.name[:1] }}</span><div><small>Paciente</small><strong>{{ patient.name }}</strong></div></div></header>
+<form method="post" data-plan-form>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="content-grid plan-layout">
+    <div>
+      <section class="panel form-panel"><div class="form-grid"><label>Título do plano<input name="title" required placeholder="Ex.: Plano de adaptação — setembro"></label><label>Objetivo<input name="objective" value="{{ patient.goal or '' }}" placeholder="Objetivo nutricional"></label><label class="span-2">Orientações gerais<textarea name="guidance" rows="3" placeholder="Hidratação, substituições, horários e outras orientações..."></textarea></label></div></section>
+      <section class="panel meal-builder"><div class="panel-header"><div><h2>Refeições e alimentos</h2><p>Valores nutricionais correspondem à quantidade informada.</p></div><button class="button button-secondary button-sm" type="button" data-add-food>+ Adicionar alimento</button></div>
+        <div class="food-items" data-food-items>
+          <article class="food-row" data-food-row>
+            <div class="food-row-head"><strong>Item <span data-row-number>1</span></strong><button type="button" data-remove-food aria-label="Remover alimento">×</button></div>
+            <div class="form-grid food-grid"><label>Refeição<select name="meal_name[]"><option>Café da manhã</option><option>Lanche da manhã</option><option>Almoço</option><option>Lanche da tarde</option><option>Jantar</option><option>Ceia</option></select></label><label>Alimento<input name="food_name[]" required placeholder="Ex.: Arroz integral"></label><label>Quantidade<input name="quantity[]" required placeholder="Ex.: 100 g"></label><label>Energia (kcal)<input type="number" name="calories[]" min="0" step="0.1" value="0" data-nutrient="calories"></label><label>Proteína (g)<input type="number" name="protein[]" min="0" step="0.1" value="0" data-nutrient="protein"></label><label>Carboidrato (g)<input type="number" name="carbs[]" min="0" step="0.1" value="0" data-nutrient="carbs"></label><label>Gordura (g)<input type="number" name="fat[]" min="0" step="0.1" value="0" data-nutrient="fat"></label><label>Fibra (g)<input type="number" name="fiber[]" min="0" step="0.1" value="0" data-nutrient="fiber"></label><label>Cálcio (mg)<input type="number" name="calcium[]" min="0" step="0.1" value="0" data-nutrient="calcium"></label><label>Ferro (mg)<input type="number" name="iron[]" min="0" step="0.1" value="0" data-nutrient="iron"></label></div>
+          </article>
+        </div>
+      </section>
+    </div>
+    <aside class="panel totals-panel"><span class="eyebrow">RESUMO DO PLANO</span><div class="calorie-total"><strong data-total="calories">0</strong><span>kcal</span><small>Total diário estimado</small></div><div class="totals-list"><div><span>Proteínas</span><b><em data-total="protein">0</em> g</b></div><div><span>Carboidratos</span><b><em data-total="carbs">0</em> g</b></div><div><span>Gorduras</span><b><em data-total="fat">0</em> g</b></div><div><span>Fibras</span><b><em data-total="fiber">0</em> g</b></div><div><span>Cálcio</span><b><em data-total="calcium">0</em> mg</b></div><div><span>Ferro</span><b><em data-total="iron">0</em> mg</b></div></div><p class="clinical-note">Os valores apoiam o planejamento e devem ser revisados pelo nutricionista responsável.</p><button class="button button-primary button-block" type="submit">Publicar plano alimentar</button><a class="button button-ghost button-block" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">Cancelar</a></aside>
+  </div>
+</form>
+{% endblock %}
