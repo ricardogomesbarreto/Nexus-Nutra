@@ -141,9 +141,37 @@ def _migration_002_secure_agenda(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_003_secure_identity(db: sqlite3.Connection) -> None:
+    """Tokens de identidade e compatibilidade para contas anteriores à v1.2.1."""
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS identity_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            purpose TEXT NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_identity_tokens_lookup
+            ON identity_tokens(token_hash, purpose, expires_at);
+        CREATE INDEX IF NOT EXISTS idx_identity_tokens_user
+            ON identity_tokens(user_id, purpose, used_at);
+        """
+    )
+    db.execute(
+        """UPDATE users SET email_verified_at = CURRENT_TIMESTAMP
+           WHERE email_verified_at IS NULL"""
+    )
+
+
 MIGRATIONS = (
     (1, "v1.1.0_catalogo_inteligente", _migration_001_catalog),
     (2, "v1.2.0_agenda_segura", _migration_002_secure_agenda),
+    (3, "v1.2.1_identidade_segura", _migration_003_secure_identity),
 )
 
 

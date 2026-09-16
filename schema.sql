@@ -180,6 +180,17 @@ CREATE TABLE IF NOT EXISTS audit_log (
     FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS identity_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id INTEGER NOT NULL,
@@ -210,6 +221,8 @@ CREATE INDEX IF NOT EXISTS idx_appointment_history_appointment ON appointment_hi
 CREATE INDEX IF NOT EXISTS idx_availability_professional_weekday ON availability_slots(nutritionist_id, weekday, active);
 CREATE INDEX IF NOT EXISTS idx_schedule_blocks_professional_start ON schedule_blocks(nutritionist_id, starts_at);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_identity_tokens_lookup ON identity_tokens(token_hash, purpose, expires_at);
+CREATE INDEX IF NOT EXISTS idx_identity_tokens_user ON identity_tokens(user_id, purpose, used_at);
 CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, recipient_id, created_at);
 
 INSERT OR IGNORE INTO foods

@@ -19,7 +19,7 @@
       <label class="check-field privacy-check"><input type="checkbox" name="privacy_consent" value="1" required><span>Li e aceito o tratamento dos meus dados para o funcionamento do Nexus Nutra, conforme a Política de Privacidade vigente.</span></label>
       <button class="button button-primary button-block" type="submit">Criar minha conta</button>
     </form>
-    <p class="auth-switch">Já tem acesso? <a href="{{ url_for('main.login') }}">Entrar</a></p>
+    <p class="auth-switch">Já tem acesso? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
   </div>
 </section>
 {% endblock %}

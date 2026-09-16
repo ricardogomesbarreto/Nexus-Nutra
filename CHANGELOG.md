@@ -6,9 +6,37 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
 ### Planejado
 
-- recuperação de senha por token de uso único e verificação de e-mail;
-- separação progressiva das rotas por domínio;
-- testes de navegador para os fluxos críticos da agenda.
+- prontuário com anamnese e avaliação antropométrica;
+- separação progressiva dos demais domínios em blueprints;
+- testes de navegador para os fluxos críticos de identidade e agenda.
+
+## [1.2.1] — 2026-09-16 — Identidade Segura
+
+### Adicionado
+
+- confirmação de e-mail com link de uso único e validade de 24 horas;
+- reenvio controlado de confirmação sem enumeração de contas;
+- recuperação de senha com link de uso único e validade de 30 minutos;
+- adaptador SMTP configurável com TLS, SSL e autenticação opcional;
+- outbox isolado para testes e desenvolvimento sem envio externo;
+- migration v3 para tokens de identidade e compatibilidade de contas existentes;
+- páginas profissionais para confirmação, recuperação, redefinição e links expirados;
+- auditoria dos eventos críticos de identidade;
+- três cenários de segurança, elevando a suíte para 15 testes.
+
+### Segurança
+
+- somente hashes SHA-256 dos tokens são persistidos no banco;
+- emissão de novo token invalida os anteriores da mesma finalidade;
+- redefinição de senha revoga sessões existentes e libera bloqueios de login;
+- respostas de recuperação e reenvio não confirmam a existência de uma conta;
+- limitação de três solicitações por finalidade em uma hora;
+- contas criadas antes da v1.2.1 são migradas como verificadas, sem bloquear usuários existentes.
+
+### Arquitetura
+
+- rotas de cadastro, login e identidade extraídas para o blueprint `auth`;
+- configuração de e-mail centralizada e sem segredos versionados.
 
 ## [1.2.0] — 2026-09-16 — Agenda Segura
 

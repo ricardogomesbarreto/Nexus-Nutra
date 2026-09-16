@@ -12,6 +12,9 @@ def app(tmp_path):
             "TESTING": True,
             "SECRET_KEY": "test-secret",
             "DATABASE": str(tmp_path / "test.db"),
+            "MAIL_SUPPRESS_SEND": True,
+            "PUBLIC_BASE_URL": "https://nutra.test",
+            "REQUIRE_EMAIL_VERIFICATION": False,
         }
     )
     yield application

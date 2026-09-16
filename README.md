@@ -11,7 +11,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.2.0-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.2.1-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -23,19 +23,18 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. A versão atual não substitui prontuário clínico certificado nem aconselhamento profissional.
 
-## Novidades da v1.2.0 — Agenda Segura
+## Novidades da v1.2.1 — Identidade Segura
 
-- agenda profissional com duração e lembrete configuráveis;
-- confirmação, conclusão, cancelamento, ausência e reagendamento com regras de transição;
-- prevenção automática de conflitos entre consultas e períodos bloqueados;
-- disponibilidade semanal e bloqueios para pausas, feriados ou compromissos;
-- histórico rastreável de cada consulta e trilha inicial de auditoria;
-- exportação de compromissos no formato ICS;
-- links de teleconsulta restritos a HTTPS;
-- bloqueio temporário após tentativas repetidas de login;
-- sessões com expiração de 12 horas e revogação de outros dispositivos;
-- consentimento de privacidade versionado no cadastro;
-- migrations numeradas, compatíveis com instalações das versões anteriores.
+- confirmação de e-mail obrigatória e reenvio controlado para novas contas;
+- recuperação de senha com resposta que não revela se um endereço está cadastrado;
+- tokens aleatórios de uso único, armazenados somente como hash;
+- validade de 24 horas para confirmação e 30 minutos para recuperação;
+- revogação de todas as sessões anteriores após alteração da senha;
+- limitação de solicitações por conta e finalidade;
+- adaptador SMTP com TLS/SSL, autenticação opcional e modo seguro para desenvolvimento;
+- auditoria dos eventos de criação, verificação e recuperação da conta;
+- autenticação separada em blueprint próprio;
+- migration v3 compatível com contas e bancos das versões anteriores.
 
 ## Funcionalidades
 
@@ -73,6 +72,8 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - expiração de sessão, revogação de outros dispositivos e bloqueio progressivo de login;
 - trilha de auditoria para ações sensíveis da agenda;
 - consentimento de privacidade versionado;
+- confirmação de e-mail e recuperação de senha com tokens de uso único;
+- entrega transacional configurável por SMTP com TLS ou SSL;
 - cabeçalhos básicos de segurança;
 - consultas parametrizadas e chaves estrangeiras ativas;
 - testes automatizados e CI com GitHub Actions;
@@ -85,7 +86,8 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 | Back-end | Python 3.10+ e Flask 3.1 |
 | Interface | Jinja2, HTML5, CSS3 e JavaScript puro |
 | Banco | SQLite 3 |
-| Segurança | Werkzeug, sessão Flask e token CSRF |
+| Segurança | Werkzeug, sessão Flask, CSRF e tokens de identidade com SHA-256 |
+| Comunicação | SMTP transacional com TLS/SSL |
 | Qualidade | Pytest, Ruff e GitHub Actions |
 
 ## Como executar localmente
@@ -121,6 +123,10 @@ Defina `SECRET_KEY` no seu ambiente antes de publicar. Para gerar uma chave:
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
+Para os fluxos de identidade, configure também `PUBLIC_BASE_URL`, `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` e `MAIL_FROM`. Em produção,
+use `MAIL_SUPPRESS_SEND=0` e mantenha `REQUIRE_EMAIL_VERIFICATION=1`.
+
 ### 3. Iniciar
 
 ```bash
@@ -145,7 +151,9 @@ Nexus-Nutra/
 ├── .github/workflows/ci.yml
 ├── nexus_nutra/
 │   ├── __init__.py
+│   ├── auth.py
 │   ├── db.py
+│   ├── mailer.py
 │   └── routes.py
 ├── static/
 │   ├── css/app.css
@@ -180,7 +188,7 @@ flowchart LR
 |---|---|---|
 | v1.1.0 | Catálogo Inteligente ✅ | alimentos TACO, metas, alternativas e impressão |
 | v1.2.0 | Agenda Segura ✅ | disponibilidade, conflitos, estados, ICS, auditoria e sessões |
-| v1.2.1 | Identidade Segura | recuperação de senha e verificação de e-mail |
+| v1.2.1 | Identidade Segura ✅ | recuperação de senha, verificação de e-mail e SMTP |
 | v1.3.0 | Prontuário Clínico | anamnese, antropometria, evolução e consentimentos clínicos |
 | v1.4.0 | Inteligência Nutricional | receitas, catálogo ampliado, nutrientes e relatórios |
 | v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |

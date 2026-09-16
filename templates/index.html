@@ -7,7 +7,7 @@
     <h1>Mais tempo para cuidar.<br><em>Mais clareza para evoluir.</em></h1>
     <p>Consultório, plano alimentar e acompanhamento do paciente em uma experiência simples, humana e conectada.</p>
     <div class="hero-actions">
-      <a class="button button-primary" href="{{ url_for('main.register') }}">Começar agora <span>→</span></a>
+      <a class="button button-primary" href="{{ url_for('auth.register') }}">Começar agora <span>→</span></a>
       <a class="button button-secondary" href="#recursos">Conhecer a plataforma</a>
     </div>
     <div class="trust-row"><span>✓ Dados organizados</span><span>✓ Experiência responsiva</span><span>✓ Feito para o Brasil</span></div>
@@ -50,5 +50,5 @@
   </div>
 </section>
 
-<section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('main.register') }}">Criar minha conta →</a></section>
+<section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('auth.register') }}">Criar minha conta →</a></section>
 {% endblock %}

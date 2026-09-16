@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import sqlite3
+from urllib.parse import urlsplit
+
+import pytest
+from werkzeug.security import check_password_hash
 
 from nexus_nutra import create_app
 from nexus_nutra.db import get_db
@@ -332,7 +336,7 @@ def test_v10_database_is_migrated_without_losing_schema(tmp_path):
         assert db.execute("SELECT COUNT(*) FROM foods").fetchone()[0] == 18
 
 
-def test_v12_migration_creates_secure_agenda_foundation(app):
+def test_versioned_migrations_create_security_foundation(app):
     with app.app_context():
         db = get_db()
         versions = {
@@ -342,11 +346,14 @@ def test_v12_migration_creates_secure_agenda_foundation(app):
             row["name"] for row in db.execute("PRAGMA table_info(appointments)")
         }
         user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
-        assert versions == {1, 2}
+        assert versions == {1, 2, 3}
         assert {"duration_minutes", "reminder_minutes", "cancellation_reason"} <= appointment_columns
         assert {"failed_login_attempts", "locked_until", "session_version"} <= user_columns
         assert db.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'appointment_history'"
+        ).fetchone()
+        assert db.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'identity_tokens'"
         ).fetchone()
 
 
@@ -492,3 +499,134 @@ def test_login_is_temporarily_locked_after_repeated_failures(client, token):
     response = login(client, token, "marina@example.com", "senha-segura")
     assert response.status_code == 429
     assert b"temporariamente bloqueado" in response.data
+
+
+def test_email_verification_uses_single_use_hashed_token(app, client, token):
+    app.config["REQUIRE_EMAIL_VERIFICATION"] = True
+    response = register(
+        client,
+        token,
+        "Marina Nutricionista",
+        "marina@example.com",
+        "senha-segura",
+        "nutritionist",
+        crn="CRN-6 12345",
+    )
+    assert b"Enviamos um link para confirmar" in response.data
+    message = app.extensions["mail_outbox"][-1]
+    verification_url = next(
+        line for line in message["body"].splitlines() if line.startswith("https://")
+    )
+    verification_path = urlsplit(verification_url).path
+    raw_token = verification_path.rsplit("/", 1)[-1]
+
+    with app.app_context():
+        db = get_db()
+        user = db.execute(
+            "SELECT * FROM users WHERE email = 'marina@example.com'"
+        ).fetchone()
+        stored = db.execute(
+            "SELECT token_hash FROM identity_tokens WHERE user_id = ?",
+            (user["id"],),
+        ).fetchone()["token_hash"]
+        assert user["email_verified_at"] is None
+        assert stored != raw_token
+        assert len(stored) == 64
+
+    blocked = login(client, token, "marina@example.com", "senha-segura")
+    assert b"Reenviar confirma" in blocked.data
+
+    verified = client.get(verification_path, follow_redirects=True)
+    assert b"E-mail confirmado" in verified.data
+    assert login(client, token, "marina@example.com", "senha-segura").status_code == 200
+    assert client.get(verification_path).status_code == 400
+
+    with app.app_context():
+        db = get_db()
+        assert db.execute(
+            "SELECT email_verified_at FROM users WHERE email = 'marina@example.com'"
+        ).fetchone()["email_verified_at"]
+        assert db.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE action = 'identity.email_verified'"
+        ).fetchone()[0] == 1
+
+
+def test_password_reset_is_generic_single_use_and_revokes_sessions(app, client, token):
+    register(
+        client,
+        token,
+        "Marina Nutricionista",
+        "marina@example.com",
+        "senha-segura",
+        "nutritionist",
+        crn="CRN-6 12345",
+    )
+    app.extensions["mail_outbox"].clear()
+
+    unknown = client.post(
+        "/recuperar-senha",
+        data={"csrf_token": token, "email": "inexistente@example.com"},
+        follow_redirects=True,
+    )
+    assert b"Se houver uma conta ativa" in unknown.data
+    assert app.extensions["mail_outbox"] == []
+
+    other_client = app.test_client()
+    other_client.get("/login")
+    with other_client.session_transaction() as other_session:
+        other_token = other_session["csrf_token"]
+    login(other_client, other_token, "marina@example.com", "senha-segura")
+    assert other_client.get("/dashboard").status_code == 200
+
+    response = client.post(
+        "/recuperar-senha",
+        data={"csrf_token": token, "email": "marina@example.com"},
+        follow_redirects=True,
+    )
+    assert b"Se houver uma conta ativa" in response.data
+    reset_message = app.extensions["mail_outbox"][-1]
+    reset_url = next(
+        line for line in reset_message["body"].splitlines() if line.startswith("https://")
+    )
+    reset_path = urlsplit(reset_url).path
+    raw_token = reset_path.rsplit("/", 1)[-1]
+
+    with app.app_context():
+        db = get_db()
+        token_row = db.execute(
+            "SELECT token_hash FROM identity_tokens WHERE purpose = 'reset_password'"
+        ).fetchone()
+        assert token_row["token_hash"] != raw_token
+
+    reset_response = client.post(
+        reset_path,
+        data={
+            "csrf_token": token,
+            "password": "nova-senha-segura",
+            "password_confirmation": "nova-senha-segura",
+        },
+        follow_redirects=True,
+    )
+    assert b"Senha redefinida" in reset_response.data
+    assert client.get(reset_path).status_code == 400
+    assert other_client.get("/dashboard", follow_redirects=False).status_code == 302
+
+    with app.app_context():
+        db = get_db()
+        user = db.execute(
+            "SELECT * FROM users WHERE email = 'marina@example.com'"
+        ).fetchone()
+        assert user["session_version"] == 2
+        assert check_password_hash(user["password_hash"], "nova-senha-segura")
+        assert db.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE action = 'identity.password_reset_completed'"
+        ).fetchone()[0] == 1
+
+
+def test_production_rejects_incomplete_identity_configuration(tmp_path, monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("SMTP_HOST", raising=False)
+    monkeypatch.setenv("PUBLIC_BASE_URL", "http://nutra.example.com")
+    with pytest.raises(RuntimeError, match="Configuração de produção incompleta"):
+        create_app({"DATABASE": str(tmp_path / "production.db")})

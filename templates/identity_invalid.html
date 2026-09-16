@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% set is_reset = mode == 'reset' %}
+{% block title %}Link indisponível — Nexus Nutra{% endblock %}
+{% block public_content %}
+<section class="auth-layout identity-layout"><div class="auth-pitch"><span class="eyebrow">PROTEÇÃO DE CONTA</span><h1>Este link não está mais disponível.</h1><p>Links de identidade expiram e deixam de funcionar imediatamente após o primeiro uso.</p></div><div class="auth-card identity-card identity-state"><div class="identity-icon warning">!</div><div class="auth-heading"><h2>Link inválido ou expirado</h2><p>Solicite uma nova mensagem para continuar com segurança.</p></div><a class="button button-primary button-block" href="{{ url_for('auth.request_password_reset') if is_reset else url_for('auth.resend_verification') }}">{{ 'Solicitar nova recuperação' if is_reset else 'Solicitar nova confirmação' }}</a><p class="auth-switch"><a href="{{ url_for('auth.login') }}">Voltar para o login</a></p></div></section>
+{% endblock %}

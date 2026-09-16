@@ -20,14 +20,13 @@ from flask import (
     session,
     url_for,
 )
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
 from .db import get_db
 
 bp = Blueprint("main", __name__)
 
 NUTRIENT_FIELDS = ("calories", "protein", "carbs", "fat", "fiber", "calcium", "iron")
-PRIVACY_POLICY_VERSION = "2026-09"
 APPOINTMENT_STATUSES = {
     "scheduled": "Agendada",
     "confirmed": "Confirmada",
@@ -95,7 +94,7 @@ def login_required(view):
     def wrapped(**kwargs):
         if g.user is None:
             flash("Entre na sua conta para continuar.", "info")
-            return redirect(url_for("main.login", next=request.path))
+            return redirect(url_for("auth.login", next=request.path))
         return view(**kwargs)
 
     return wrapped
@@ -113,13 +112,6 @@ def role_required(role: str):
         return wrapped
 
     return decorator
-
-
-def _safe_next(target: str | None) -> str | None:
-    if not target:
-        return None
-    parsed = urlparse(target)
-    return target if not parsed.netloc and target.startswith("/") else None
 
 
 def _safe_external_url(target: str | None) -> str:
@@ -284,124 +276,6 @@ def _can_contact(other_id: int) -> bool:
 @bp.get("/")
 def index():
     return render_template("index.html")
-
-
-@bp.route("/cadastro", methods=["GET", "POST"])
-def register():
-    if g.user:
-        return redirect(url_for("main.dashboard"))
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        role = request.form.get("role", "patient")
-        crn = request.form.get("crn", "").strip() or None
-        nutritionist_email = request.form.get("nutritionist_email", "").strip().lower()
-        accepted_privacy = request.form.get("privacy_consent") == "1"
-        error = None
-        if len(name) < 3:
-            error = "Informe seu nome completo."
-        elif "@" not in email:
-            error = "Informe um e-mail válido."
-        elif len(password) < 8:
-            error = "A senha precisa ter pelo menos 8 caracteres."
-        elif role not in {"nutritionist", "patient"}:
-            error = "Selecione um perfil válido."
-        elif role == "nutritionist" and not crn:
-            error = "Informe o CRN para criar um perfil profissional."
-        elif not accepted_privacy:
-            error = "Aceite a Política de Privacidade para criar sua conta."
-
-        db = get_db()
-        nutritionist = None
-        if not error and role == "patient" and nutritionist_email:
-            nutritionist = db.execute(
-                "SELECT id FROM users WHERE email = ? AND role = 'nutritionist'",
-                (nutritionist_email,),
-            ).fetchone()
-            if not nutritionist:
-                error = "Nutricionista não encontrado com esse e-mail."
-        if error:
-            flash(error, "error")
-        else:
-            try:
-                cursor = db.execute(
-                    """INSERT INTO users
-                       (name, email, password_hash, role, crn,
-                        privacy_policy_version, privacy_accepted_at)
-                       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-                    (
-                        name,
-                        email,
-                        generate_password_hash(password),
-                        role,
-                        crn,
-                        PRIVACY_POLICY_VERSION,
-                    ),
-                )
-                if nutritionist:
-                    db.execute(
-                        "INSERT INTO professional_patients (nutritionist_id, patient_id) VALUES (?, ?)",
-                        (nutritionist["id"], cursor.lastrowid),
-                    )
-                db.commit()
-                flash("Conta criada com sucesso. Agora você já pode entrar.", "success")
-                return redirect(url_for("main.login"))
-            except sqlite3.IntegrityError:
-                flash("Este e-mail já está cadastrado.", "error")
-    return render_template("register.html")
-
-
-@bp.route("/login", methods=["GET", "POST"])
-def login():
-    if g.user:
-        return redirect(url_for("main.dashboard"))
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        db = get_db()
-        user = db.execute(
-            "SELECT * FROM users WHERE email = ? AND active = 1", (email,)
-        ).fetchone()
-        now = datetime.now()
-        locked_until = _parse_local_datetime(user["locked_until"]) if user else None
-        if locked_until and locked_until > now:
-            flash("Acesso temporariamente bloqueado. Tente novamente em alguns minutos.", "error")
-            return render_template("login.html"), 429
-        if user and check_password_hash(user["password_hash"], password):
-            db.execute(
-                "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
-                (user["id"],),
-            )
-            session.clear()
-            session.permanent = True
-            session["user_id"] = user["id"]
-            session["session_version"] = user["session_version"]
-            session["csrf_token"] = secrets.token_urlsafe(32)
-            db.commit()
-            return redirect(_safe_next(request.args.get("next")) or url_for("main.dashboard"))
-        if user:
-            attempts = user["failed_login_attempts"] + 1
-            lock_value = (
-                (now + timedelta(minutes=15)).isoformat(timespec="seconds")
-                if attempts >= 5
-                else None
-            )
-            db.execute(
-                "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?",
-                (attempts, lock_value, user["id"]),
-            )
-            db.commit()
-        flash("E-mail ou senha incorretos.", "error")
-    return render_template("login.html")
-
-
-@bp.post("/logout")
-@login_required
-def logout():
-    session.clear()
-    flash("Sessão encerrada com segurança.", "success")
-    return redirect(url_for("main.index"))
 
 
 @bp.post("/perfil/sessoes/revogar")

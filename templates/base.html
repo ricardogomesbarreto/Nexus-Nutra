@@ -43,7 +43,7 @@
         <div class="topbar-title"><span class="status-dot"></span> Atendimento conectado</div>
         <div class="topbar-actions">
           <a class="icon-button" href="{{ url_for('main.chat') }}" aria-label="Mensagens">◌</a>
-          <form method="post" action="{{ url_for('main.logout') }}">
+          <form method="post" action="{{ url_for('auth.logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="button button-ghost button-sm" type="submit">Sair</button>
           </form>
@@ -60,8 +60,8 @@
       <nav aria-label="Navegação pública">
         <a href="{{ url_for('main.index') }}#recursos">Recursos</a>
         <a href="{{ url_for('main.index') }}#para-quem">Para quem</a>
-        <a href="{{ url_for('main.login') }}">Entrar</a>
-        <a class="button button-primary button-sm" href="{{ url_for('main.register') }}">Criar conta</a>
+        <a href="{{ url_for('auth.login') }}">Entrar</a>
+        <a class="button button-primary button-sm" href="{{ url_for('auth.register') }}">Criar conta</a>
       </nav>
     </header>
     <main>

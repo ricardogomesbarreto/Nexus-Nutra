@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 16 de setembro de 2026, após a entrega da v1.2.0.
+> Atualizado em 16 de setembro de 2026, após a entrega da v1.2.1.
 
 ## Visão
 
@@ -20,7 +20,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ## Estado atual
 
-| Área | Entregue até a v1.2.0 |
+| Área | Entregue até a v1.2.1 |
 |---|---|
 | Contas | Cadastro, login, perfis de nutricionista e paciente |
 | Pacientes | Vínculo, listagem, busca e prontuário resumido |
@@ -28,14 +28,14 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | Alimentos | Catálogo inicial TACO, categorias, medidas e cálculo por quantidade |
 | Acompanhamento | Diário alimentar e evolução de peso |
 | Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
-| Segurança | CSRF, hash de senha, autorização por perfil, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
-| Qualidade | Migrations numeradas, testes automatizados, Ruff e GitHub Actions |
+| Segurança | CSRF, hash de senha, verificação de e-mail, recuperação segura, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
+| Qualidade | Blueprints iniciais, migrations numeradas, testes automatizados, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
 | Prioridade | Lacuna | Impacto |
 |---|---|---|
-| P0 | Ausência de recuperação de senha e verificação de e-mail | Risco de segurança e suporte |
+| P0 | Falta autenticação multifator e gestão centralizada de dispositivos | Risco residual de segurança |
 | P0 | Auditoria e consentimento existem em nível inicial, mas faltam política de retenção e exportação/exclusão de dados | Impede uso responsável com dados sensíveis |
 | P0 | SQLite e aplicação monolítica atendem ao MVP, mas limitam concorrência e crescimento | Risco operacional futuro |
 | P1 | Lembretes da agenda ainda são internos e não possuem entrega por e-mail, WhatsApp ou push | Menor alcance das automações |
@@ -50,7 +50,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ~~~mermaid
 flowchart TD
-    A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura"]
+    A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura ✅"]
     S --> B["v1.3 · Prontuário Clínico"]
     B --> C["v1.4 · Inteligência Nutricional"]
     C --> D["v1.5 · Engajamento PWA"]
@@ -107,6 +107,8 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 ### v1.2.1 — Identidade Segura
 
 **Objetivo:** concluir a segurança de contas com fluxos verificáveis e comunicação transacional.
+
+**Status:** entregue em 16 de setembro de 2026.
 
 #### Entregas
 
@@ -369,11 +371,11 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer agora
 
-1. implementar recuperação de senha e verificação de e-mail;
-2. modularizar as rotas por domínio;
+1. preparar o prontuário clínico da v1.3.0;
+2. separar os demais domínios em blueprints e serviços;
 3. criar testes de navegador das jornadas críticas;
 4. definir retenção, exportação e exclusão de dados;
-5. preparar o prontuário clínico da v1.3.0.
+5. estruturar anamnese, antropometria e histórico clínico imutável.
 
 ### Fazer em seguida
 
