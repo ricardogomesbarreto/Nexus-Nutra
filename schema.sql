@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS users (
     goal TEXT,
     height_cm REAL,
     active INTEGER NOT NULL DEFAULT 1,
+    failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until TEXT,
+    session_version INTEGER NOT NULL DEFAULT 1,
+    privacy_policy_version TEXT,
+    privacy_accepted_at TEXT,
+    email_verified_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -118,9 +124,60 @@ CREATE TABLE IF NOT EXISTS appointments (
     status TEXT NOT NULL DEFAULT 'scheduled',
     meeting_url TEXT,
     notes TEXT,
+    duration_minutes INTEGER NOT NULL DEFAULT 50,
+    reminder_minutes INTEGER NOT NULL DEFAULT 1440,
+    cancellation_reason TEXT,
+    updated_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS availability_slots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nutritionist_id INTEGER NOT NULL,
+    weekday INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (nutritionist_id, weekday, start_time, end_time)
+);
+
+CREATE TABLE IF NOT EXISTS schedule_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nutritionist_id INTEGER NOT NULL,
+    starts_at TEXT NOT NULL,
+    ends_at TEXT NOT NULL,
+    reason TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS appointment_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id INTEGER NOT NULL,
+    actor_id INTEGER NOT NULL,
+    event TEXT NOT NULL,
+    from_status TEXT,
+    to_status TEXT,
+    old_starts_at TEXT,
+    new_starts_at TEXT,
+    reason TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id INTEGER,
+    action TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER,
+    details TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -148,6 +205,11 @@ CREATE INDEX IF NOT EXISTS idx_plans_patient ON meal_plans(patient_id, active);
 CREATE INDEX IF NOT EXISTS idx_weight_patient_date ON weight_records(patient_id, recorded_on);
 CREATE INDEX IF NOT EXISTS idx_diary_patient_date ON food_diary(patient_id, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(starts_at);
+CREATE INDEX IF NOT EXISTS idx_appointments_professional_start ON appointments(nutritionist_id, starts_at, status);
+CREATE INDEX IF NOT EXISTS idx_appointment_history_appointment ON appointment_history(appointment_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_availability_professional_weekday ON availability_slots(nutritionist_id, weekday, active);
+CREATE INDEX IF NOT EXISTS idx_schedule_blocks_professional_start ON schedule_blocks(nutritionist_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, recipient_id, created_at);
 
 INSERT OR IGNORE INTO foods

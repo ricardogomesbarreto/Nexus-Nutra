@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import secrets
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from urllib.parse import urlparse
 
 from flask import (
     Blueprint,
+    Response,
     abort,
     flash,
     g,
@@ -26,6 +27,22 @@ from .db import get_db
 bp = Blueprint("main", __name__)
 
 NUTRIENT_FIELDS = ("calories", "protein", "carbs", "fat", "fiber", "calcium", "iron")
+PRIVACY_POLICY_VERSION = "2026-09"
+APPOINTMENT_STATUSES = {
+    "scheduled": "Agendada",
+    "confirmed": "Confirmada",
+    "completed": "Concluída",
+    "cancelled": "Cancelada",
+    "no_show": "Não compareceu",
+}
+APPOINTMENT_TRANSITIONS = {
+    "scheduled": {"confirmed", "cancelled"},
+    "confirmed": {"completed", "cancelled", "no_show"},
+    "completed": set(),
+    "cancelled": set(),
+    "no_show": set(),
+}
+WEEKDAYS = ("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
 
 
 def _csrf_token() -> str:
@@ -36,7 +53,12 @@ def _csrf_token() -> str:
 
 @bp.app_context_processor
 def inject_globals():
-    return {"csrf_token": _csrf_token, "today": date.today().isoformat()}
+    return {
+        "csrf_token": _csrf_token,
+        "today": date.today().isoformat(),
+        "appointment_statuses": APPOINTMENT_STATUSES,
+        "weekdays": WEEKDAYS,
+    }
 
 
 @bp.app_template_filter("brdate")
@@ -59,6 +81,9 @@ def load_user_and_protect_forms():
         if user_id
         else None
     )
+    if g.user and session.get("session_version") != g.user["session_version"]:
+        session.clear()
+        g.user = None
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
         if not token or not secrets.compare_digest(token, session.get("csrf_token", "")):
@@ -98,11 +123,107 @@ def _safe_next(target: str | None) -> str | None:
 
 
 def _safe_external_url(target: str | None) -> str:
-    """Aceita apenas links HTTP(S) para consultas online."""
+    """Aceita apenas links HTTPS para proteger consultas online."""
     if not target:
         return ""
     parsed = urlparse(target.strip())
-    return target.strip() if parsed.scheme in {"http", "https"} and parsed.netloc else ""
+    return target.strip() if parsed.scheme == "https" and parsed.netloc else ""
+
+
+def _audit(action: str, entity_type: str, entity_id: int | None, details: str = "") -> None:
+    get_db().execute(
+        """INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details)
+           VALUES (?, ?, ?, ?, ?)""",
+        (g.user["id"] if g.user else None, action, entity_type, entity_id, details[:1000]),
+    )
+
+
+def _parse_local_datetime(value: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value or "")
+    except ValueError:
+        return None
+
+
+def _appointment_for_current_user(appointment_id: int):
+    appointment = get_db().execute(
+        """SELECT a.*, p.name AS patient_name, n.name AS nutritionist_name,
+                  n.email AS nutritionist_email
+           FROM appointments a
+           JOIN users p ON p.id = a.patient_id
+           JOIN users n ON n.id = a.nutritionist_id
+           WHERE a.id = ?""",
+        (appointment_id,),
+    ).fetchone()
+    if not appointment or g.user["id"] not in {
+        appointment["nutritionist_id"],
+        appointment["patient_id"],
+    }:
+        abort(404)
+    return appointment
+
+
+def _appointment_conflicts(
+    nutritionist_id: int,
+    starts_at: datetime,
+    duration_minutes: int,
+    exclude_id: int | None = None,
+) -> bool:
+    db = get_db()
+    end_at = starts_at + timedelta(minutes=duration_minutes)
+    rows = db.execute(
+        """SELECT id, starts_at, duration_minutes FROM appointments
+           WHERE nutritionist_id = ? AND status IN ('scheduled', 'confirmed')""",
+        (nutritionist_id,),
+    ).fetchall()
+    for row in rows:
+        if exclude_id and row["id"] == exclude_id:
+            continue
+        existing_start = _parse_local_datetime(row["starts_at"])
+        if not existing_start:
+            continue
+        existing_end = existing_start + timedelta(minutes=row["duration_minutes"] or 50)
+        if starts_at < existing_end and end_at > existing_start:
+            return True
+    blocks = db.execute(
+        """SELECT starts_at, ends_at FROM schedule_blocks
+           WHERE nutritionist_id = ?""",
+        (nutritionist_id,),
+    ).fetchall()
+    return any(
+        starts_at < block_end and end_at > block_start
+        for block in blocks
+        if (block_start := _parse_local_datetime(block["starts_at"]))
+        and (block_end := _parse_local_datetime(block["ends_at"]))
+    )
+
+
+def _record_appointment_event(
+    appointment_id: int,
+    event: str,
+    *,
+    from_status: str | None = None,
+    to_status: str | None = None,
+    old_starts_at: str | None = None,
+    new_starts_at: str | None = None,
+    reason: str = "",
+) -> None:
+    get_db().execute(
+        """INSERT INTO appointment_history
+           (appointment_id, actor_id, event, from_status, to_status,
+            old_starts_at, new_starts_at, reason)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            appointment_id,
+            g.user["id"],
+            event,
+            from_status,
+            to_status,
+            old_starts_at,
+            new_starts_at,
+            reason[:500],
+        ),
+    )
 
 
 def _patient_for_nutritionist(patient_id: int):
@@ -176,6 +297,7 @@ def register():
         role = request.form.get("role", "patient")
         crn = request.form.get("crn", "").strip() or None
         nutritionist_email = request.form.get("nutritionist_email", "").strip().lower()
+        accepted_privacy = request.form.get("privacy_consent") == "1"
         error = None
         if len(name) < 3:
             error = "Informe seu nome completo."
@@ -187,6 +309,8 @@ def register():
             error = "Selecione um perfil válido."
         elif role == "nutritionist" and not crn:
             error = "Informe o CRN para criar um perfil profissional."
+        elif not accepted_privacy:
+            error = "Aceite a Política de Privacidade para criar sua conta."
 
         db = get_db()
         nutritionist = None
@@ -202,8 +326,18 @@ def register():
         else:
             try:
                 cursor = db.execute(
-                    "INSERT INTO users (name, email, password_hash, role, crn) VALUES (?, ?, ?, ?, ?)",
-                    (name, email, generate_password_hash(password), role, crn),
+                    """INSERT INTO users
+                       (name, email, password_hash, role, crn,
+                        privacy_policy_version, privacy_accepted_at)
+                       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                    (
+                        name,
+                        email,
+                        generate_password_hash(password),
+                        role,
+                        crn,
+                        PRIVACY_POLICY_VERSION,
+                    ),
                 )
                 if nutritionist:
                     db.execute(
@@ -225,14 +359,39 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        user = get_db().execute(
+        db = get_db()
+        user = db.execute(
             "SELECT * FROM users WHERE email = ? AND active = 1", (email,)
         ).fetchone()
+        now = datetime.now()
+        locked_until = _parse_local_datetime(user["locked_until"]) if user else None
+        if locked_until and locked_until > now:
+            flash("Acesso temporariamente bloqueado. Tente novamente em alguns minutos.", "error")
+            return render_template("login.html"), 429
         if user and check_password_hash(user["password_hash"], password):
+            db.execute(
+                "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
+                (user["id"],),
+            )
             session.clear()
+            session.permanent = True
             session["user_id"] = user["id"]
+            session["session_version"] = user["session_version"]
             session["csrf_token"] = secrets.token_urlsafe(32)
+            db.commit()
             return redirect(_safe_next(request.args.get("next")) or url_for("main.dashboard"))
+        if user:
+            attempts = user["failed_login_attempts"] + 1
+            lock_value = (
+                (now + timedelta(minutes=15)).isoformat(timespec="seconds")
+                if attempts >= 5
+                else None
+            )
+            db.execute(
+                "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?",
+                (attempts, lock_value, user["id"]),
+            )
+            db.commit()
         flash("E-mail ou senha incorretos.", "error")
     return render_template("login.html")
 
@@ -245,6 +404,22 @@ def logout():
     return redirect(url_for("main.index"))
 
 
+@bp.post("/perfil/sessoes/revogar")
+@login_required
+def revoke_other_sessions():
+    db = get_db()
+    new_version = g.user["session_version"] + 1
+    db.execute(
+        "UPDATE users SET session_version = ? WHERE id = ?",
+        (new_version, g.user["id"]),
+    )
+    _audit("sessions.revoked", "user", g.user["id"])
+    db.commit()
+    session["session_version"] = new_version
+    flash("Outras sessões foram revogadas. Este dispositivo permanece conectado.", "success")
+    return redirect(url_for("main.profile"))
+
+
 @bp.get("/dashboard")
 @login_required
 def dashboard():
@@ -254,7 +429,9 @@ def dashboard():
             """
             SELECT
               COUNT(DISTINCT pp.patient_id) AS patients,
-              COUNT(DISTINCT CASE WHEN date(a.starts_at) = date('now', 'localtime') THEN a.id END) AS today_appointments,
+              COUNT(DISTINCT CASE WHEN date(a.starts_at) = date('now', 'localtime') AND a.status IN ('scheduled', 'confirmed') THEN a.id END) AS today_appointments,
+              COUNT(DISTINCT CASE WHEN datetime(a.starts_at) >= datetime('now', 'localtime') AND a.status = 'scheduled' THEN a.id END) AS pending_confirmations,
+              COUNT(DISTINCT CASE WHEN datetime(a.starts_at) > datetime('now', 'localtime') AND a.status IN ('scheduled', 'confirmed') AND datetime(a.starts_at, '-' || a.reminder_minutes || ' minutes') <= datetime('now', 'localtime') THEN a.id END) AS due_reminders,
               COUNT(DISTINCT CASE WHEN m.recipient_id = ? AND m.read_at IS NULL THEN m.id END) AS unread_messages,
               COUNT(DISTINCT CASE WHEN mp.active = 1 THEN mp.patient_id END) AS active_plans
             FROM professional_patients pp
@@ -268,8 +445,10 @@ def dashboard():
         appointments = db.execute(
             """SELECT a.*, u.name AS patient_name FROM appointments a
                JOIN users u ON u.id = a.patient_id
-               WHERE a.nutritionist_id = ? AND a.starts_at >= datetime('now', '-1 day')
-               ORDER BY a.starts_at LIMIT 5""",
+               WHERE a.nutritionist_id = ?
+                 AND date(a.starts_at) = date('now', 'localtime')
+                 AND a.status IN ('scheduled', 'confirmed')
+               ORDER BY a.starts_at LIMIT 8""",
             (g.user["id"],),
         ).fetchall()
         recent = db.execute(
@@ -296,7 +475,8 @@ def dashboard():
     appointments = db.execute(
         """SELECT a.*, u.name AS nutritionist_name FROM appointments a
            JOIN users u ON u.id = a.nutritionist_id
-           WHERE a.patient_id = ? AND a.starts_at >= datetime('now', '-1 day')
+           WHERE a.patient_id = ? AND datetime(a.starts_at) >= datetime('now', '-1 day')
+             AND a.status IN ('scheduled', 'confirmed')
            ORDER BY a.starts_at LIMIT 3""",
         (g.user["id"],),
     ).fetchall()
@@ -664,27 +844,67 @@ def agenda():
     if request.method == "POST":
         if g.user["role"] != "nutritionist":
             abort(403)
-        patient_id = int(request.form.get("patient_id", 0))
-        if not _patient_for_nutritionist(patient_id) or not request.form.get("starts_at"):
+        patient_id = int(_number(request.form.get("patient_id")))
+        starts_at = _parse_local_datetime(request.form.get("starts_at"))
+        duration_minutes = int(
+            _number(request.form.get("duration_minutes") or "50", 50)
+        )
+        duration_minutes = min(240, max(15, duration_minutes))
+        mode = request.form.get("mode", "online")
+        meeting_url = _safe_external_url(request.form.get("meeting_url"))
+        if not _patient_for_nutritionist(patient_id) or not starts_at:
             flash("Selecione um paciente e uma data válida.", "error")
+        elif starts_at <= datetime.now():
+            flash("Escolha um horário futuro para a consulta.", "error")
+        elif mode not in {"online", "in_person"}:
+            flash("Selecione uma modalidade válida.", "error")
+        elif mode == "online" and request.form.get("meeting_url") and not meeting_url:
+            flash("O link da consulta online deve utilizar HTTPS.", "error")
+        elif _appointment_conflicts(g.user["id"], starts_at, duration_minutes):
+            flash("Este horário conflita com outra consulta ou bloqueio da agenda.", "error")
         else:
-            db.execute(
+            cursor = db.execute(
                 """INSERT INTO appointments
-                   (nutritionist_id, patient_id, starts_at, mode, meeting_url, notes)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (nutritionist_id, patient_id, starts_at, mode, meeting_url, notes,
+                    duration_minutes, reminder_minutes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    g.user["id"], patient_id, request.form["starts_at"],
-                    request.form.get("mode", "online"),
-                    _safe_external_url(request.form.get("meeting_url")),
+                    g.user["id"],
+                    patient_id,
+                    starts_at.isoformat(timespec="minutes"),
+                    mode,
+                    meeting_url,
                     request.form.get("notes", "").strip(),
+                    duration_minutes,
+                    min(
+                        10080,
+                        max(
+                            0,
+                            int(
+                                _number(
+                                    request.form.get("reminder_minutes") or "1440",
+                                    1440,
+                                )
+                            ),
+                        ),
+                    ),
                 ),
             )
+            _record_appointment_event(
+                cursor.lastrowid,
+                "created",
+                to_status="scheduled",
+                new_starts_at=starts_at.isoformat(timespec="minutes"),
+            )
+            _audit("appointment.created", "appointment", cursor.lastrowid)
             db.commit()
             flash("Consulta agendada com sucesso.", "success")
             return redirect(url_for("main.agenda"))
     if g.user["role"] == "nutritionist":
         appointments = db.execute(
-            """SELECT a.*, u.name AS contact_name FROM appointments a JOIN users u ON u.id = a.patient_id
+            """SELECT a.*, u.name AS contact_name,
+                      (SELECT COUNT(*) FROM appointment_history h WHERE h.appointment_id = a.id) AS history_count
+               FROM appointments a JOIN users u ON u.id = a.patient_id
                WHERE a.nutritionist_id = ? ORDER BY a.starts_at""",
             (g.user["id"],),
         ).fetchall()
@@ -693,14 +913,253 @@ def agenda():
                WHERE pp.nutritionist_id = ? ORDER BY u.name""",
             (g.user["id"],),
         ).fetchall()
+        availability = db.execute(
+            """SELECT * FROM availability_slots
+               WHERE nutritionist_id = ? AND active = 1
+               ORDER BY weekday, start_time""",
+            (g.user["id"],),
+        ).fetchall()
+        blocks = db.execute(
+            """SELECT * FROM schedule_blocks
+               WHERE nutritionist_id = ? AND datetime(ends_at) >= datetime('now', 'localtime')
+               ORDER BY starts_at LIMIT 20""",
+            (g.user["id"],),
+        ).fetchall()
     else:
         appointments = db.execute(
-            """SELECT a.*, u.name AS contact_name FROM appointments a JOIN users u ON u.id = a.nutritionist_id
+            """SELECT a.*, u.name AS contact_name,
+                      (SELECT COUNT(*) FROM appointment_history h WHERE h.appointment_id = a.id) AS history_count
+               FROM appointments a JOIN users u ON u.id = a.nutritionist_id
                WHERE a.patient_id = ? ORDER BY a.starts_at""",
             (g.user["id"],),
         ).fetchall()
         patients_list = []
-    return render_template("agenda.html", appointments=appointments, patients=patients_list)
+        availability = []
+        blocks = []
+    history_rows = []
+    selected_id = int(_number(request.args.get("historico")))
+    if selected_id:
+        _appointment_for_current_user(selected_id)
+        history_rows = db.execute(
+            """SELECT h.*, u.name AS actor_name FROM appointment_history h
+               JOIN users u ON u.id = h.actor_id
+               WHERE h.appointment_id = ? ORDER BY h.created_at DESC, h.id DESC""",
+            (selected_id,),
+        ).fetchall()
+    return render_template(
+        "agenda.html",
+        appointments=appointments,
+        patients=patients_list,
+        availability=availability,
+        blocks=blocks,
+        history_rows=history_rows,
+        selected_id=selected_id,
+    )
+
+
+@bp.post("/agenda/<int:appointment_id>/status")
+@login_required
+def update_appointment_status(appointment_id: int):
+    appointment = _appointment_for_current_user(appointment_id)
+    new_status = request.form.get("status", "")
+    reason = request.form.get("reason", "").strip()
+    allowed = APPOINTMENT_TRANSITIONS.get(appointment["status"], set())
+    if new_status not in allowed:
+        flash("Esta mudança de status não é permitida.", "error")
+        return redirect(url_for("main.agenda"))
+    if g.user["role"] == "patient" and new_status not in {"confirmed", "cancelled"}:
+        abort(403)
+    if new_status in {"cancelled", "no_show"} and len(reason) < 3:
+        flash("Informe o motivo para registrar esta alteração.", "error")
+        return redirect(url_for("main.agenda"))
+    db = get_db()
+    db.execute(
+        """UPDATE appointments
+           SET status = ?, cancellation_reason = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?""",
+        (new_status, reason if new_status == "cancelled" else None, appointment_id),
+    )
+    _record_appointment_event(
+        appointment_id,
+        "status_changed",
+        from_status=appointment["status"],
+        to_status=new_status,
+        reason=reason,
+    )
+    _audit(
+        "appointment.status_changed",
+        "appointment",
+        appointment_id,
+        f"{appointment['status']}->{new_status}",
+    )
+    db.commit()
+    flash(f"Consulta marcada como {APPOINTMENT_STATUSES[new_status].lower()}.", "success")
+    return redirect(url_for("main.agenda"))
+
+
+@bp.post("/agenda/<int:appointment_id>/reagendar")
+@login_required
+def reschedule_appointment(appointment_id: int):
+    appointment = _appointment_for_current_user(appointment_id)
+    starts_at = _parse_local_datetime(request.form.get("starts_at"))
+    reason = request.form.get("reason", "").strip()
+    if appointment["status"] in {"completed", "cancelled", "no_show"}:
+        flash("Consultas encerradas não podem ser reagendadas.", "error")
+    elif not starts_at or starts_at <= datetime.now():
+        flash("Escolha uma nova data futura.", "error")
+    elif len(reason) < 3:
+        flash("Informe o motivo do reagendamento.", "error")
+    elif _appointment_conflicts(
+        appointment["nutritionist_id"],
+        starts_at,
+        appointment["duration_minutes"],
+        exclude_id=appointment_id,
+    ):
+        flash("O novo horário conflita com outra consulta ou bloqueio.", "error")
+    else:
+        db = get_db()
+        new_value = starts_at.isoformat(timespec="minutes")
+        db.execute(
+            """UPDATE appointments
+               SET starts_at = ?, status = 'scheduled', updated_at = CURRENT_TIMESTAMP
+               WHERE id = ?""",
+            (new_value, appointment_id),
+        )
+        _record_appointment_event(
+            appointment_id,
+            "rescheduled",
+            from_status=appointment["status"],
+            to_status="scheduled",
+            old_starts_at=appointment["starts_at"],
+            new_starts_at=new_value,
+            reason=reason,
+        )
+        _audit("appointment.rescheduled", "appointment", appointment_id, reason)
+        db.commit()
+        flash("Consulta reagendada e enviada para nova confirmação.", "success")
+    return redirect(url_for("main.agenda"))
+
+
+@bp.get("/agenda/<int:appointment_id>.ics")
+@login_required
+def appointment_ics(appointment_id: int):
+    appointment = _appointment_for_current_user(appointment_id)
+    starts_at = _parse_local_datetime(appointment["starts_at"])
+    if not starts_at:
+        abort(404)
+    ends_at = starts_at + timedelta(minutes=appointment["duration_minutes"] or 50)
+
+    def escape_ics(value: str) -> str:
+        return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+    description = appointment["notes"] or "Consulta de acompanhamento nutricional"
+    if appointment["meeting_url"]:
+        description = f"{description}\n{appointment['meeting_url']}"
+    content = "\r\n".join(
+        (
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Nexus Nutra//Agenda Segura//PT-BR",
+            "CALSCALE:GREGORIAN",
+            "BEGIN:VEVENT",
+            f"UID:nexus-nutra-appointment-{appointment_id}@local",
+            f"DTSTAMP:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+            f"DTSTART:{starts_at.strftime('%Y%m%dT%H%M%S')}",
+            f"DTEND:{ends_at.strftime('%Y%m%dT%H%M%S')}",
+            "SUMMARY:Consulta nutricional — Nexus Nutra",
+            f"DESCRIPTION:{escape_ics(description)}",
+            f"STATUS:{'CANCELLED' if appointment['status'] == 'cancelled' else 'CONFIRMED'}",
+            "END:VEVENT",
+            "END:VCALENDAR",
+            "",
+        )
+    )
+    return Response(
+        content,
+        mimetype="text/calendar",
+        headers={"Content-Disposition": f"attachment; filename=consulta-{appointment_id}.ics"},
+    )
+
+
+@bp.post("/agenda/disponibilidade")
+@role_required("nutritionist")
+def add_availability():
+    weekday_value = request.form.get("weekday", "")
+    weekday = int(weekday_value) if weekday_value.isdigit() else -1
+    start_time = request.form.get("start_time", "")
+    end_time = request.form.get("end_time", "")
+    if weekday not in range(7) or not start_time or not end_time or start_time >= end_time:
+        flash("Informe um dia e um intervalo de disponibilidade válido.", "error")
+    else:
+        db = get_db()
+        try:
+            cursor = db.execute(
+                """INSERT INTO availability_slots
+                   (nutritionist_id, weekday, start_time, end_time)
+                   VALUES (?, ?, ?, ?)""",
+                (g.user["id"], weekday, start_time, end_time),
+            )
+            _audit("availability.created", "availability", cursor.lastrowid)
+            db.commit()
+            flash("Disponibilidade semanal adicionada.", "success")
+        except sqlite3.IntegrityError:
+            flash("Este intervalo já está cadastrado.", "info")
+    return redirect(url_for("main.agenda"))
+
+
+@bp.post("/agenda/disponibilidade/<int:slot_id>/remover")
+@role_required("nutritionist")
+def remove_availability(slot_id: int):
+    db = get_db()
+    cursor = db.execute(
+        "DELETE FROM availability_slots WHERE id = ? AND nutritionist_id = ?",
+        (slot_id, g.user["id"]),
+    )
+    if cursor.rowcount:
+        _audit("availability.removed", "availability", slot_id)
+        db.commit()
+        flash("Disponibilidade removida.", "success")
+    return redirect(url_for("main.agenda"))
+
+
+@bp.post("/agenda/bloqueios")
+@role_required("nutritionist")
+def add_schedule_block():
+    starts_at = _parse_local_datetime(request.form.get("starts_at"))
+    ends_at = _parse_local_datetime(request.form.get("ends_at"))
+    if not starts_at or not ends_at or ends_at <= starts_at:
+        flash("Informe um intervalo de bloqueio válido.", "error")
+    else:
+        db = get_db()
+        cursor = db.execute(
+            """INSERT INTO schedule_blocks (nutritionist_id, starts_at, ends_at, reason)
+               VALUES (?, ?, ?, ?)""",
+            (
+                g.user["id"],
+                starts_at.isoformat(timespec="minutes"),
+                ends_at.isoformat(timespec="minutes"),
+                request.form.get("reason", "").strip(),
+            ),
+        )
+        _audit("schedule_block.created", "schedule_block", cursor.lastrowid)
+        db.commit()
+        flash("Período bloqueado na agenda.", "success")
+    return redirect(url_for("main.agenda"))
+
+
+@bp.post("/agenda/bloqueios/<int:block_id>/remover")
+@role_required("nutritionist")
+def remove_schedule_block(block_id: int):
+    db = get_db()
+    cursor = db.execute(
+        "DELETE FROM schedule_blocks WHERE id = ? AND nutritionist_id = ?",
+        (block_id, g.user["id"]),
+    )
+    if cursor.rowcount:
+        _audit("schedule_block.removed", "schedule_block", block_id)
+        db.commit()
+        flash("Bloqueio removido da agenda.", "success")
+    return redirect(url_for("main.agenda"))
 
 
 @bp.route("/chat", methods=["GET"])

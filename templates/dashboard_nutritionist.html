@@ -12,10 +12,10 @@
 
 <div class="content-grid two-one">
   <section class="panel">
-    <div class="panel-header"><div><h2>Próximas consultas</h2><p>Organize os atendimentos do dia.</p></div><a href="{{ url_for('main.agenda') }}">Ver agenda</a></div>
+    <div class="panel-header"><div><h2>Hoje</h2><p>{{ stats.due_reminders or 0 }} lembrete(s) ativo(s) · {{ stats.pending_confirmations or 0 }} aguardando confirmação.</p></div><a href="{{ url_for('main.agenda') }}">Ver agenda</a></div>
     {% if appointments %}<div class="appointment-list">
       {% for item in appointments %}<article><time><b>{{ item.starts_at[11:16] }}</b><small>{{ item.starts_at|brdate }}</small></time><div class="avatar soft">{{ item.patient_name[:1] }}</div><div class="grow"><strong>{{ item.patient_name }}</strong><small>{{ 'Consulta online' if item.mode == 'online' else 'Consulta presencial' }}</small></div><span class="badge badge-{{ 'success' if item.mode == 'online' else 'neutral' }}">{{ 'Online' if item.mode == 'online' else 'Presencial' }}</span></article>{% endfor %}
-    </div>{% else %}<div class="empty-inline"><span>□</span><p>Nenhuma consulta futura.</p><a href="{{ url_for('main.agenda') }}">Agendar agora</a></div>{% endif %}
+    </div>{% else %}<div class="empty-inline"><span>□</span><p>Nenhuma consulta marcada para hoje.</p><a href="{{ url_for('main.agenda') }}">Organizar agenda</a></div>{% endif %}
   </section>
   <section class="panel action-panel"><div class="panel-header"><div><h2>Ações rápidas</h2><p>Atalhos da sua rotina.</p></div></div><div class="quick-actions"><a href="{{ url_for('main.new_patient') }}"><span>＋</span><div><b>Novo paciente</b><small>Cadastre e vincule</small></div></a><a href="{{ url_for('main.patients') }}"><span>⌁</span><div><b>Criar plano</b><small>Selecione um paciente</small></div></a><a href="{{ url_for('main.agenda') }}"><span>□</span><div><b>Agendar consulta</b><small>Presencial ou online</small></div></a><a href="{{ url_for('main.chat') }}"><span>◌</span><div><b>Abrir mensagens</b><small>Acompanhe suas conversas</small></div></a></div></section>
 </div>

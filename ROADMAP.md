@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 16 de setembro de 2026, após a entrega da v1.1.0.
+> Atualizado em 16 de setembro de 2026, após a entrega da v1.2.0.
 
 ## Visão
 
@@ -20,25 +20,25 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ## Estado atual
 
-| Área | Entregue até a v1.1.0 |
+| Área | Entregue até a v1.2.0 |
 |---|---|
 | Contas | Cadastro, login, perfis de nutricionista e paciente |
 | Pacientes | Vínculo, listagem, busca e prontuário resumido |
 | Planos | Criação, metas, macros, micronutrientes, modelos e impressão/PDF |
 | Alimentos | Catálogo inicial TACO, categorias, medidas e cálculo por quantidade |
 | Acompanhamento | Diário alimentar e evolução de peso |
-| Atendimento | Agenda básica, consultas online e chat |
-| Segurança | CSRF, hash de senha, autorização por perfil e cabeçalhos básicos |
-| Qualidade | Testes automatizados, Ruff e GitHub Actions |
+| Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
+| Segurança | CSRF, hash de senha, autorização por perfil, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
+| Qualidade | Migrations numeradas, testes automatizados, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
 | Prioridade | Lacuna | Impacto |
 |---|---|---|
-| P0 | Ausência de recuperação de senha, verificação de e-mail, expiração de sessão e limitação de tentativas | Risco de segurança e suporte |
-| P0 | Sem consentimentos versionados, trilha de auditoria, política de retenção e exportação/exclusão de dados | Impede uso responsável com dados sensíveis |
+| P0 | Ausência de recuperação de senha e verificação de e-mail | Risco de segurança e suporte |
+| P0 | Auditoria e consentimento existem em nível inicial, mas faltam política de retenção e exportação/exclusão de dados | Impede uso responsável com dados sensíveis |
 | P0 | SQLite e aplicação monolítica atendem ao MVP, mas limitam concorrência e crescimento | Risco operacional futuro |
-| P1 | Agenda não possui disponibilidade, confirmação, cancelamento, reagendamento nem lembretes | Trabalho manual para o consultório |
+| P1 | Lembretes da agenda ainda são internos e não possuem entrega por e-mail, WhatsApp ou push | Menor alcance das automações |
 | P1 | Prontuário ainda não possui anamnese, avaliação antropométrica completa ou notas clínicas | Acompanhamento profissional incompleto |
 | P1 | Catálogo é inicial e ainda não possui receitas, alimentos personalizados ou importação controlada | Prescrição ainda exige trabalho manual |
 | P1 | Diário não aceita fotos, sintomas, humor, água, atividade ou comentários do profissional | Menor contexto clínico e adesão |
@@ -50,7 +50,8 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ~~~mermaid
 flowchart TD
-    A["v1.2 · Agenda Segura"] --> B["v1.3 · Prontuário Clínico"]
+    A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura"]
+    S --> B["v1.3 · Prontuário Clínico"]
     B --> C["v1.4 · Inteligência Nutricional"]
     C --> D["v1.5 · Engajamento PWA"]
     D --> E["v1.6 · Gestão de Clínicas"]
@@ -64,6 +65,8 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 ## Roadmap versionado
 
 ### v1.2.0 — Agenda Segura e Automações
+
+**Status:** entregue em 16 de setembro de 2026. Recuperação de senha e verificação de e-mail foram separadas para a v1.2.1, pois dependem do canal transacional de e-mail.
 
 **Objetivo:** reduzir faltas, organizar horários e criar a fundação de segurança necessária para os próximos módulos clínicos.
 
@@ -98,6 +101,23 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 - fluxo responsivo para nutricionista e paciente.
 
 **Complexidade:** alta · **Prioridade:** P0/P1
+
+---
+
+### v1.2.1 — Identidade Segura
+
+**Objetivo:** concluir a segurança de contas com fluxos verificáveis e comunicação transacional.
+
+#### Entregas
+
+- recuperação de senha com token de uso único, expiração e revogação;
+- verificação de e-mail e reenvio controlado;
+- adaptador SMTP configurável sem segredos no repositório;
+- registro de eventos de identidade na auditoria;
+- testes de enumeração de conta, expiração e reutilização de token;
+- separação inicial das rotas de autenticação e agenda em blueprints.
+
+**Complexidade:** média · **Prioridade:** P0
 
 ---
 
@@ -349,11 +369,11 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer agora
 
-1. modularizar rotas e implantar migrations numeradas;
-2. implementar auditoria, consentimento e segurança de sessão;
-3. evoluir estados e ações da agenda;
-4. criar testes de navegador das jornadas críticas;
-5. documentar backup e recuperação.
+1. implementar recuperação de senha e verificação de e-mail;
+2. modularizar as rotas por domínio;
+3. criar testes de navegador das jornadas críticas;
+4. definir retenção, exportação e exclusão de dados;
+5. preparar o prontuário clínico da v1.3.0.
 
 ### Fazer em seguida
 

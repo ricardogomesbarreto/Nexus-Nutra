@@ -13,6 +13,7 @@ def register(client, token, name, email, password, role, **extra):
         "email": email,
         "password": password,
         "role": role,
+        "privacy_consent": "1",
     }
     payload.update(extra)
     return client.post("/cadastro", data=payload, follow_redirects=True)
@@ -24,6 +25,39 @@ def login(client, token, email, password):
         data={"csrf_token": token, "email": email, "password": password},
         follow_redirects=True,
     )
+
+
+def create_professional_with_patient(app, client, token):
+    register(
+        client,
+        token,
+        "Marina Nutricionista",
+        "marina@example.com",
+        "senha-segura",
+        "nutritionist",
+        crn="CRN-6 12345",
+    )
+    login(client, token, "marina@example.com", "senha-segura")
+    with client.session_transaction() as session:
+        logged_token = session["csrf_token"]
+    client.post(
+        "/pacientes/novo",
+        data={
+            "csrf_token": logged_token,
+            "name": "Joao Paciente",
+            "email": "joao@example.com",
+            "password": "senha-paciente",
+        },
+    )
+    with app.app_context():
+        db = get_db()
+        nutritionist_id = db.execute(
+            "SELECT id FROM users WHERE email = 'marina@example.com'"
+        ).fetchone()["id"]
+        patient_id = db.execute(
+            "SELECT id FROM users WHERE email = 'joao@example.com'"
+        ).fetchone()["id"]
+    return logged_token, nutritionist_id, patient_id
 
 
 def test_home_and_security_headers(client):
@@ -124,19 +158,19 @@ def test_nutritionist_creates_patient_and_plan(app, client, token):
         assert plan["protein"] == 8
         assert plan["fiber"] == 6.5
 
-    client.post(
+    response = client.post(
         "/agenda",
         data={
             "csrf_token": logged_token,
             "patient_id": patient_id,
-            "starts_at": "2026-10-01T10:00",
+            "starts_at": "2099-10-01T10:00",
             "mode": "online",
             "meeting_url": "javascript:alert(1)",
         },
     )
+    assert b"deve utilizar HTTPS" in response.data
     with app.app_context():
-        appointment = get_db().execute("SELECT * FROM appointments").fetchone()
-        assert appointment["meeting_url"] == ""
+        assert get_db().execute("SELECT COUNT(*) FROM appointments").fetchone()[0] == 0
 
 
 def test_patient_cannot_open_professional_patient_list(client, token):
@@ -296,3 +330,165 @@ def test_v10_database_is_migrated_without_losing_schema(tmp_path):
         assert "target_calories" in plan_columns
         assert {"food_id", "amount_g"} <= item_columns
         assert db.execute("SELECT COUNT(*) FROM foods").fetchone()[0] == 18
+
+
+def test_v12_migration_creates_secure_agenda_foundation(app):
+    with app.app_context():
+        db = get_db()
+        versions = {
+            row["version"] for row in db.execute("SELECT version FROM schema_migrations")
+        }
+        appointment_columns = {
+            row["name"] for row in db.execute("PRAGMA table_info(appointments)")
+        }
+        user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
+        assert versions == {1, 2}
+        assert {"duration_minutes", "reminder_minutes", "cancellation_reason"} <= appointment_columns
+        assert {"failed_login_attempts", "locked_until", "session_version"} <= user_columns
+        assert db.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'appointment_history'"
+        ).fetchone()
+
+
+def test_secure_agenda_prevents_conflicts_and_exports_ics(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    payload = {
+        "csrf_token": logged_token,
+        "patient_id": patient_id,
+        "starts_at": "2099-10-01T10:00",
+        "duration_minutes": "60",
+        "reminder_minutes": "1440",
+        "mode": "online",
+        "meeting_url": "https://meet.example.com/consulta",
+        "notes": "Retorno nutricional",
+    }
+    response = client.post("/agenda", data=payload, follow_redirects=True)
+    assert b"Consulta agendada com sucesso" in response.data
+    assert b"Fluxo rastre" in response.data
+
+    response = client.post(
+        "/agenda",
+        data={**payload, "starts_at": "2099-10-01T10:30"},
+        follow_redirects=True,
+    )
+    assert b"conflita com outra consulta" in response.data
+
+    with app.app_context():
+        db = get_db()
+        appointment = db.execute("SELECT * FROM appointments").fetchone()
+        appointment_id = appointment["id"]
+        assert appointment["duration_minutes"] == 60
+        assert appointment["meeting_url"].startswith("https://")
+        assert db.execute(
+            "SELECT COUNT(*) FROM appointment_history WHERE appointment_id = ?",
+            (appointment_id,),
+        ).fetchone()[0] == 1
+        assert db.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE action = 'appointment.created'"
+        ).fetchone()[0] == 1
+
+    response = client.get(f"/agenda/{appointment_id}.ics")
+    assert response.status_code == 200
+    assert response.mimetype == "text/calendar"
+    assert b"BEGIN:VCALENDAR" in response.data
+    assert b"Consulta nutricional" in response.data
+
+
+def test_appointment_transitions_and_reschedule_are_audited(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    client.post(
+        "/agenda",
+        data={
+            "csrf_token": logged_token,
+            "patient_id": patient_id,
+            "starts_at": "2099-11-10T09:00",
+            "duration_minutes": "50",
+            "mode": "in_person",
+        },
+    )
+    with app.app_context():
+        appointment_id = get_db().execute("SELECT id FROM appointments").fetchone()["id"]
+
+    response = client.post(
+        f"/agenda/{appointment_id}/status",
+        data={"csrf_token": logged_token, "status": "confirmed"},
+        follow_redirects=True,
+    )
+    assert b"marcada como confirmada" in response.data
+
+    response = client.post(
+        f"/agenda/{appointment_id}/reagendar",
+        data={
+            "csrf_token": logged_token,
+            "starts_at": "2099-11-11T14:00",
+            "reason": "Solicitacao do paciente",
+        },
+        follow_redirects=True,
+    )
+    assert b"enviada para nova confirma" in response.data
+
+    with app.app_context():
+        db = get_db()
+        appointment = db.execute(
+            "SELECT * FROM appointments WHERE id = ?", (appointment_id,)
+        ).fetchone()
+        events = db.execute(
+            "SELECT event FROM appointment_history WHERE appointment_id = ? ORDER BY id",
+            (appointment_id,),
+        ).fetchall()
+        assert appointment["status"] == "scheduled"
+        assert appointment["starts_at"] == "2099-11-11T14:00"
+        assert [event["event"] for event in events] == [
+            "created",
+            "status_changed",
+            "rescheduled",
+        ]
+
+
+def test_schedule_block_prevents_appointment(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    client.post(
+        "/agenda/bloqueios",
+        data={
+            "csrf_token": logged_token,
+            "starts_at": "2099-12-01T12:00",
+            "ends_at": "2099-12-01T14:00",
+            "reason": "Intervalo",
+        },
+    )
+    response = client.post(
+        "/agenda",
+        data={
+            "csrf_token": logged_token,
+            "patient_id": patient_id,
+            "starts_at": "2099-12-01T13:00",
+            "duration_minutes": "30",
+            "mode": "in_person",
+        },
+        follow_redirects=True,
+    )
+    assert b"conflita com outra consulta ou bloqueio" in response.data
+
+
+def test_login_is_temporarily_locked_after_repeated_failures(client, token):
+    register(
+        client,
+        token,
+        "Marina Nutricionista",
+        "marina@example.com",
+        "senha-segura",
+        "nutritionist",
+        crn="CRN-6 12345",
+    )
+    for _attempt in range(5):
+        response = login(client, token, "marina@example.com", "senha-incorreta")
+        assert response.status_code == 200
+    response = login(client, token, "marina@example.com", "senha-segura")
+    assert response.status_code == 429
+    assert b"temporariamente bloqueado" in response.data

@@ -16,6 +16,7 @@
       <label data-nutritionist-field>CRN<input type="text" name="crn" placeholder="Ex.: CRN-6 12345"></label>
       <label class="hidden" data-patient-field>E-mail do nutricionista <span class="optional">opcional</span><input type="email" name="nutritionist_email" placeholder="nutri@exemplo.com"><small>Use para vincular sua conta automaticamente.</small></label>
       <label>Senha<input type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo de 8 caracteres"></label>
+      <label class="check-field privacy-check"><input type="checkbox" name="privacy_consent" value="1" required><span>Li e aceito o tratamento dos meus dados para o funcionamento do Nexus Nutra, conforme a Política de Privacidade vigente.</span></label>
       <button class="button button-primary button-block" type="submit">Criar minha conta</button>
     </form>
     <p class="auth-switch">Já tem acesso? <a href="{{ url_for('main.login') }}">Entrar</a></p>

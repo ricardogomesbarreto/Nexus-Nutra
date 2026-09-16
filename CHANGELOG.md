@@ -4,11 +4,35 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
 ## [Não publicado]
 
-### Documentação
+### Planejado
 
-- roadmap estratégico detalhado da v1.2.0 à v2.0.0;
-- diagnóstico de lacunas, prioridades, dependências e critérios de entrega;
-- referências de mercado, segurança, privacidade e evolução arquitetural.
+- recuperação de senha por token de uso único e verificação de e-mail;
+- separação progressiva das rotas por domínio;
+- testes de navegador para os fluxos críticos da agenda.
+
+## [1.2.0] — 2026-09-16 — Agenda Segura
+
+### Adicionado
+
+- disponibilidade semanal e períodos de bloqueio do nutricionista;
+- duração padrão e lembretes internos configuráveis por consulta;
+- estados agendada, confirmada, concluída, cancelada e não compareceu;
+- confirmação, cancelamento e reagendamento com justificativa;
+- histórico de eventos por consulta e trilha inicial de auditoria;
+- exportação de compromissos no formato ICS;
+- painel profissional “Hoje” e resumo operacional da agenda;
+- consentimento de privacidade versionado no cadastro;
+- migrations numeradas com registro em `schema_migrations`;
+- documentação de backup e restauração do SQLite;
+- cinco cenários automatizados para agenda, migrations, auditoria e autenticação.
+
+### Segurança
+
+- detecção de conflito entre consultas e bloqueios de horário;
+- links de consulta online aceitos somente com HTTPS;
+- bloqueio temporário após cinco tentativas inválidas de login;
+- sessões com expiração de 12 horas e revogação de outros dispositivos;
+- regras de autorização e transições válidas para alterações de consulta.
 
 ## [1.1.0] — 2026-09-16 — Catálogo Inteligente
 

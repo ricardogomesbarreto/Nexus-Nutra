@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import secrets
+from datetime import timedelta
 from pathlib import Path
 
 from flask import Flask, render_template
@@ -29,6 +30,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") == "production",
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
         DEBUG=os.getenv("FLASK_DEBUG", "0") == "1",
     )
 

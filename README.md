@@ -11,7 +11,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.1.0-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.2.0-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -23,17 +23,19 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. A versão atual não substitui prontuário clínico certificado nem aconselhamento profissional.
 
-## Novidades da v1.1.0 — Catálogo Inteligente
+## Novidades da v1.2.0 — Agenda Segura
 
-- catálogo inicial de alimentos brasileiros baseado na TACO 4ª edição;
-- busca por nome e filtragem por categoria alimentar;
-- cálculo automático no navegador e recálculo seguro no servidor por quantidade;
-- metas de energia, macro e micronutrientes por plano;
-- indicadores de adequação entre totais calculados e metas definidas;
-- alternativas da mesma categoria para apoiar substituições;
-- reutilização de planos anteriores como modelo, sem alterar o original;
-- documento profissional otimizado para impressão ou salvamento em PDF;
-- migração automática que preserva bancos criados na v1.0.0.
+- agenda profissional com duração e lembrete configuráveis;
+- confirmação, conclusão, cancelamento, ausência e reagendamento com regras de transição;
+- prevenção automática de conflitos entre consultas e períodos bloqueados;
+- disponibilidade semanal e bloqueios para pausas, feriados ou compromissos;
+- histórico rastreável de cada consulta e trilha inicial de auditoria;
+- exportação de compromissos no formato ICS;
+- links de teleconsulta restritos a HTTPS;
+- bloqueio temporário após tentativas repetidas de login;
+- sessões com expiração de 12 horas e revogação de outros dispositivos;
+- consentimento de privacidade versionado no cadastro;
+- migrations numeradas, compatíveis com instalações das versões anteriores.
 
 ## Funcionalidades
 
@@ -49,7 +51,8 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - reutilização de planos como modelo e sugestões de alternativas;
 - impressão profissional do plano em PDF pelo navegador;
 - publicação do plano diretamente na conta do paciente;
-- agenda para consultas presenciais e online;
+- agenda para consultas presenciais e online, com disponibilidade, bloqueios e controle de conflitos;
+- painel “Hoje”, estados da consulta, histórico, lembretes internos e exportação ICS;
 - chat contextualizado com cada paciente.
 
 ### Para pacientes
@@ -58,7 +61,7 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - visualização clara do plano por refeições e alimentos;
 - diário alimentar com adesão e nível de fome;
 - histórico de peso com gráfico de evolução;
-- agenda com acesso ao link de consulta online;
+- agenda com confirmação, cancelamento, reagendamento e acesso seguro à consulta online;
 - canal direto de mensagens com o nutricionista.
 
 ### Experiência e engenharia
@@ -67,6 +70,9 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - senhas protegidas com o mecanismo seguro do Werkzeug;
 - proteção CSRF em todas as operações de escrita;
 - cookies de sessão `HttpOnly` e `SameSite=Lax`;
+- expiração de sessão, revogação de outros dispositivos e bloqueio progressivo de login;
+- trilha de auditoria para ações sensíveis da agenda;
+- consentimento de privacidade versionado;
 - cabeçalhos básicos de segurança;
 - consultas parametrizadas e chaves estrangeiras ativas;
 - testes automatizados e CI com GitHub Actions;
@@ -147,6 +153,8 @@ Nexus-Nutra/
 │   └── js/app.js
 ├── templates/
 ├── tests/
+├── docs/
+│   └── BACKUP_RESTORE.md
 ├── CHANGELOG.md
 ├── ROADMAP.md
 ├── app.py
@@ -171,8 +179,9 @@ flowchart LR
 | Versão | Nome | Foco principal |
 |---|---|---|
 | v1.1.0 | Catálogo Inteligente ✅ | alimentos TACO, metas, alternativas e impressão |
-| v1.2.0 | Agenda Segura | disponibilidade, automações, auditoria e segurança de contas |
-| v1.3.0 | Prontuário Clínico | anamnese, antropometria, evolução e consentimentos |
+| v1.2.0 | Agenda Segura ✅ | disponibilidade, conflitos, estados, ICS, auditoria e sessões |
+| v1.2.1 | Identidade Segura | recuperação de senha e verificação de e-mail |
+| v1.3.0 | Prontuário Clínico | anamnese, antropometria, evolução e consentimentos clínicos |
 | v1.4.0 | Inteligência Nutricional | receitas, catálogo ampliado, nutrientes e relatórios |
 | v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |
 | v1.6.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |
