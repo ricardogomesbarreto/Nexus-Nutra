@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Catálogo de alimentos — Nexus Nutra{% endblock %}
+{% block content %}
+<header class="page-header with-action">
+  <div><span class="eyebrow">BASE ALIMENTAR BRASILEIRA · V1.1</span><h1>Catálogo de alimentos</h1><p>Composição por 100 g para acelerar a criação de planos alimentares.</p></div>
+  <span class="catalog-count"><b>{{ foods|length }}</b> alimentos encontrados</span>
+</header>
+
+<section class="panel catalog-toolbar">
+  <form method="get" class="catalog-filters">
+    <label class="catalog-search"><span class="sr-only">Buscar alimento</span><input type="search" name="q" value="{{ search }}" placeholder="Buscar arroz, feijão, fruta..."></label>
+    <label><span class="sr-only">Categoria</span><select name="categoria"><option value="">Todas as categorias</option>{% for item in categories %}<option value="{{ item.category }}" {{ 'selected' if selected_category == item.category }}>{{ item.category }}</option>{% endfor %}</select></label>
+    <button class="button button-primary" type="submit">Pesquisar</button>
+    {% if search or selected_category %}<a class="button button-ghost" href="{{ url_for('main.food_catalog') }}">Limpar</a>{% endif %}
+  </form>
+</section>
+
+{% if foods %}
+<section class="food-catalog-grid">
+  {% for food in foods %}
+  <article class="food-catalog-card">
+    <header><span class="food-category">{{ food.category }}</span><h2>{{ food.name }}</h2><p>{{ food.household_measure }}</p></header>
+    <div class="food-energy"><strong>{{ food.calories|round|int }}</strong><span>kcal / 100 g</span></div>
+    <dl><div><dt>Proteínas</dt><dd>{{ food.protein|round(1) }} g</dd></div><div><dt>Carboidratos</dt><dd>{{ food.carbs|round(1) }} g</dd></div><div><dt>Gorduras</dt><dd>{{ food.fat|round(1) }} g</dd></div><div><dt>Fibras</dt><dd>{{ food.fiber|round(1) }} g</dd></div></dl>
+    <footer>{{ food.source }}</footer>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="panel empty-state"><span>⌕</span><h2>Nenhum alimento encontrado</h2><p>Tente outro nome ou remova o filtro de categoria.</p></section>
+{% endif %}
+
+<div class="catalog-disclaimer"><strong>Nota técnica</strong><p>O catálogo inicial é uma seleção da TACO 4ª edição (NEPA/UNICAMP). Os valores podem variar por variedade, preparo e marca; valide a prescrição no contexto clínico.</p></div>
+{% endblock %}

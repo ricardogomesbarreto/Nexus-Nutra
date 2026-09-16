@@ -1,22 +1,77 @@
 {% extends 'base.html' %}
 {% block title %}Novo plano alimentar — Nexus Nutra{% endblock %}
 {% block content %}
-<header class="page-header with-action"><div><a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Prontuário de {{ patient.name }}</a><span class="eyebrow">PRESCRIÇÃO NUTRICIONAL</span><h1>Novo plano alimentar</h1><p>Os totais são recalculados automaticamente a cada item.</p></div><div class="patient-chip"><span class="avatar">{{ patient.name[:1] }}</span><div><small>Paciente</small><strong>{{ patient.name }}</strong></div></div></header>
+<header class="page-header with-action">
+  <div>
+    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Prontuário de {{ patient.name }}</a>
+    <span class="eyebrow">PRESCRIÇÃO NUTRICIONAL · V1.1</span>
+    <h1>{{ 'Reutilizar plano alimentar' if model else 'Novo plano alimentar' }}</h1>
+    <p>Selecione alimentos do catálogo brasileiro e informe a quantidade para calcular os nutrientes.</p>
+  </div>
+  <div class="patient-chip"><span class="avatar">{{ patient.name[:1] }}</span><div><small>Paciente</small><strong>{{ patient.name }}</strong></div></div>
+</header>
+
+{% if model %}
+<div class="model-notice"><span>↻</span><div><strong>Modelo carregado: {{ model.title }}</strong><p>Revise as quantidades e metas antes de publicar. O plano original será preservado.</p></div></div>
+{% endif %}
+
 <form method="post" data-plan-form>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <script type="application/json" data-food-catalog>{{ foods_payload|tojson }}</script>
+  <datalist id="food-options">{% for food in foods_catalog %}<option value="{{ food.name }}">{{ food.category }} · {{ food.household_measure }}</option>{% endfor %}</datalist>
   <div class="content-grid plan-layout">
     <div>
-      <section class="panel form-panel"><div class="form-grid"><label>Título do plano<input name="title" required placeholder="Ex.: Plano de adaptação — setembro"></label><label>Objetivo<input name="objective" value="{{ patient.goal or '' }}" placeholder="Objetivo nutricional"></label><label class="span-2">Orientações gerais<textarea name="guidance" rows="3" placeholder="Hidratação, substituições, horários e outras orientações..."></textarea></label></div></section>
-      <section class="panel meal-builder"><div class="panel-header"><div><h2>Refeições e alimentos</h2><p>Valores nutricionais correspondem à quantidade informada.</p></div><button class="button button-secondary button-sm" type="button" data-add-food>+ Adicionar alimento</button></div>
+      <section class="panel form-panel">
+        <div class="panel-header"><div><h2>Identificação e metas</h2><p>As metas permitem comparar a prescrição com o total planejado.</p></div></div>
+        <div class="form-grid">
+          <label>Título do plano<input name="title" required value="{{ (model.title ~ ' — revisão') if model else '' }}" placeholder="Ex.: Plano de adaptação — setembro"></label>
+          <label>Objetivo<input name="objective" value="{{ model.objective if model else (patient.goal or '') }}" placeholder="Objetivo nutricional"></label>
+          <label class="span-2">Orientações gerais<textarea name="guidance" rows="3" placeholder="Hidratação, substituições, horários e outras orientações...">{{ model.guidance if model else '' }}</textarea></label>
+        </div>
+        <div class="target-grid">
+          {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidratos', 'g'), ('fat', 'Gorduras', 'g'), ('fiber', 'Fibras', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg')] %}
+          <label>{{ label }} <small>{{ unit }}</small><input type="number" min="0" step="0.1" name="target_{{ field }}" value="{{ model['target_' ~ field] if model and model['target_' ~ field] else '' }}" placeholder="Meta"></label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel meal-builder">
+        <div class="panel-header"><div><h2>Refeições e alimentos</h2><p>Dados por 100 g provenientes do catálogo TACO; o cálculo usa a quantidade informada.</p></div><button class="button button-secondary button-sm" type="button" data-add-food>+ Adicionar alimento</button></div>
         <div class="food-items" data-food-items>
+          {% set initial_items = model_items if model_items else [none] %}
+          {% for item in initial_items %}
           <article class="food-row" data-food-row>
-            <div class="food-row-head"><strong>Item <span data-row-number>1</span></strong><button type="button" data-remove-food aria-label="Remover alimento">×</button></div>
-            <div class="form-grid food-grid"><label>Refeição<select name="meal_name[]"><option>Café da manhã</option><option>Lanche da manhã</option><option>Almoço</option><option>Lanche da tarde</option><option>Jantar</option><option>Ceia</option></select></label><label>Alimento<input name="food_name[]" required placeholder="Ex.: Arroz integral"></label><label>Quantidade<input name="quantity[]" required placeholder="Ex.: 100 g"></label><label>Energia (kcal)<input type="number" name="calories[]" min="0" step="0.1" value="0" data-nutrient="calories"></label><label>Proteína (g)<input type="number" name="protein[]" min="0" step="0.1" value="0" data-nutrient="protein"></label><label>Carboidrato (g)<input type="number" name="carbs[]" min="0" step="0.1" value="0" data-nutrient="carbs"></label><label>Gordura (g)<input type="number" name="fat[]" min="0" step="0.1" value="0" data-nutrient="fat"></label><label>Fibra (g)<input type="number" name="fiber[]" min="0" step="0.1" value="0" data-nutrient="fiber"></label><label>Cálcio (mg)<input type="number" name="calcium[]" min="0" step="0.1" value="0" data-nutrient="calcium"></label><label>Ferro (mg)<input type="number" name="iron[]" min="0" step="0.1" value="0" data-nutrient="iron"></label></div>
+            <div class="food-row-head"><strong>Item <span data-row-number>{{ loop.index }}</span></strong><span class="catalog-status" data-catalog-status>{{ 'Catálogo TACO' if item and item.food_id else 'Preenchimento manual' }}</span><button type="button" data-remove-food aria-label="Remover alimento">×</button></div>
+            <div class="form-grid food-grid food-grid-v11">
+              <label>Refeição<select name="meal_name[]">{% for meal in ['Café da manhã', 'Lanche da manhã', 'Almoço', 'Lanche da tarde', 'Jantar', 'Ceia'] %}<option {{ 'selected' if item and item.meal_name == meal }}>{{ meal }}</option>{% endfor %}</select></label>
+              <label class="food-search-field">Buscar alimento<input name="food_name[]" list="food-options" required value="{{ item.food_name if item else '' }}" placeholder="Digite para pesquisar..." data-food-search autocomplete="off"><input type="hidden" name="food_id[]" value="{{ item.food_id if item and item.food_id else '' }}" data-food-id></label>
+              <label>Quantidade <small>gramas/ml</small><input type="number" name="amount_g[]" min="0.1" step="0.1" value="{{ item.amount_g if item and item.amount_g else '' }}" placeholder="Ex.: 100" data-amount-g><input type="hidden" name="quantity[]" value="{{ item.quantity if item else '' }}"></label>
+              {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidrato', 'g'), ('fat', 'Gordura', 'g'), ('fiber', 'Fibra', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg')] %}
+              <label>{{ label }} <small>{{ unit }}</small><input type="number" name="{{ field }}[]" min="0" step="0.1" value="{{ item[field] if item else 0 }}" data-nutrient="{{ field }}"></label>
+              {% endfor %}
+            </div>
+            <p class="food-source" data-food-source>{{ item.food_source if item and item.food_source else 'Selecione um alimento do catálogo para cálculo automático.' }}</p>
           </article>
+          {% endfor %}
         </div>
       </section>
     </div>
-    <aside class="panel totals-panel"><span class="eyebrow">RESUMO DO PLANO</span><div class="calorie-total"><strong data-total="calories">0</strong><span>kcal</span><small>Total diário estimado</small></div><div class="totals-list"><div><span>Proteínas</span><b><em data-total="protein">0</em> g</b></div><div><span>Carboidratos</span><b><em data-total="carbs">0</em> g</b></div><div><span>Gorduras</span><b><em data-total="fat">0</em> g</b></div><div><span>Fibras</span><b><em data-total="fiber">0</em> g</b></div><div><span>Cálcio</span><b><em data-total="calcium">0</em> mg</b></div><div><span>Ferro</span><b><em data-total="iron">0</em> mg</b></div></div><p class="clinical-note">Os valores apoiam o planejamento e devem ser revisados pelo nutricionista responsável.</p><button class="button button-primary button-block" type="submit">Publicar plano alimentar</button><a class="button button-ghost button-block" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">Cancelar</a></aside>
+
+    <aside class="panel totals-panel">
+      <span class="eyebrow">RESUMO EM TEMPO REAL</span>
+      <div class="calorie-total"><strong data-total="calories">0</strong><span>kcal</span><small>Total diário estimado</small></div>
+      <div class="totals-list">
+        <div><span>Proteínas</span><b><em data-total="protein">0</em> g</b></div>
+        <div><span>Carboidratos</span><b><em data-total="carbs">0</em> g</b></div>
+        <div><span>Gorduras</span><b><em data-total="fat">0</em> g</b></div>
+        <div><span>Fibras</span><b><em data-total="fiber">0</em> g</b></div>
+        <div><span>Cálcio</span><b><em data-total="calcium">0</em> mg</b></div>
+        <div><span>Ferro</span><b><em data-total="iron">0</em> mg</b></div>
+      </div>
+      <p class="clinical-note">Valores de referência apoiam a prescrição e devem ser conferidos pelo nutricionista responsável.</p>
+      <button class="button button-primary button-block" type="submit">Publicar plano alimentar</button>
+      <a class="button button-ghost button-block" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">Cancelar</a>
+    </aside>
   </div>
 </form>
 {% endblock %}

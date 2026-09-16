@@ -25,6 +25,8 @@ from .db import get_db
 
 bp = Blueprint("main", __name__)
 
+NUTRIENT_FIELDS = ("calories", "protein", "carbs", "fat", "fiber", "calcium", "iron")
+
 
 def _csrf_token() -> str:
     if "csrf_token" not in session:
@@ -112,6 +114,33 @@ def _patient_for_nutritionist(patient_id: int):
         """,
         (patient_id, g.user["id"]),
     ).fetchone()
+
+
+def _plan_for_current_user(plan_id: int):
+    plan = get_db().execute(
+        """SELECT mp.*, p.name AS patient_name, n.name AS nutritionist_name,
+                  n.crn AS nutritionist_crn
+           FROM meal_plans mp
+           JOIN users p ON p.id = mp.patient_id
+           JOIN users n ON n.id = mp.nutritionist_id
+           WHERE mp.id = ?""",
+        (plan_id,),
+    ).fetchone()
+    if not plan or g.user["id"] not in {plan["nutritionist_id"], plan["patient_id"]}:
+        abort(404)
+    return plan
+
+
+def _plan_items(plan_id: int):
+    return get_db().execute(
+        """SELECT mi.*, f.category AS food_category,
+                  f.household_measure, f.source AS food_source,
+                  f.calories AS food_calories_100g
+           FROM meal_items mi
+           LEFT JOIN foods f ON f.id = mi.food_id
+           WHERE mi.plan_id = ? ORDER BY mi.id""",
+        (plan_id,),
+    ).fetchall()
 
 
 def _can_contact(other_id: int) -> bool:
@@ -284,6 +313,36 @@ def dashboard():
     )
 
 
+@bp.get("/catalogo/alimentos")
+@role_required("nutritionist")
+def food_catalog():
+    search = request.args.get("q", "").strip()
+    category = request.args.get("categoria", "").strip()
+    clauses = ["active = 1"]
+    params: list[str] = []
+    if search:
+        clauses.append("name LIKE ?")
+        params.append(f"%{search}%")
+    if category:
+        clauses.append("category = ?")
+        params.append(category)
+    db = get_db()
+    foods = db.execute(
+        f"SELECT * FROM foods WHERE {' AND '.join(clauses)} ORDER BY category, name",
+        params,
+    ).fetchall()
+    categories = db.execute(
+        "SELECT DISTINCT category FROM foods WHERE active = 1 ORDER BY category"
+    ).fetchall()
+    return render_template(
+        "food_catalog.html",
+        foods=foods,
+        categories=categories,
+        search=search,
+        selected_category=category,
+    )
+
+
 @bp.get("/pacientes")
 @role_required("nutritionist")
 def patients():
@@ -377,82 +436,169 @@ def new_plan(patient_id: int):
     patient = _patient_for_nutritionist(patient_id)
     if not patient:
         abort(404)
+    db = get_db()
+    foods_catalog = db.execute(
+        "SELECT * FROM foods WHERE active = 1 ORDER BY category, name"
+    ).fetchall()
+    model = None
+    model_items = []
+    model_id = int(request.args.get("modelo", 0) or 0)
+    if model_id:
+        model = db.execute(
+            "SELECT * FROM meal_plans WHERE id = ? AND nutritionist_id = ?",
+            (model_id, g.user["id"]),
+        ).fetchone()
+        if model:
+            model_items = _plan_items(model_id)
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         foods = request.form.getlist("food_name[]")
         if not title or not any(food.strip() for food in foods):
             flash("Informe o nome do plano e pelo menos um alimento.", "error")
         else:
-            fields = ["calories", "protein", "carbs", "fat", "fiber", "calcium", "iron"]
-            values = {field: request.form.getlist(f"{field}[]") for field in fields}
+            values = {
+                field: request.form.getlist(f"{field}[]") for field in NUTRIENT_FIELDS
+            }
             meal_names = request.form.getlist("meal_name[]")
             quantities = request.form.getlist("quantity[]")
+            food_ids = request.form.getlist("food_id[]")
+            amounts = request.form.getlist("amount_g[]")
             items = []
-            totals = {field: 0.0 for field in fields}
+            totals = {field: 0.0 for field in NUTRIENT_FIELDS}
             for index, food in enumerate(foods):
                 if not food.strip():
                     continue
-                nutrient_values = {
-                    field: _number(values[field][index] if index < len(values[field]) else 0)
-                    for field in fields
-                }
+                food_id = int(food_ids[index]) if index < len(food_ids) and food_ids[index].isdigit() else None
+                amount_g = _number(amounts[index]) if index < len(amounts) else 0
+                catalog_food = (
+                    db.execute("SELECT * FROM foods WHERE id = ? AND active = 1", (food_id,)).fetchone()
+                    if food_id
+                    else None
+                )
+                if catalog_food and amount_g > 0:
+                    factor = amount_g / 100
+                    nutrient_values = {
+                        field: round(catalog_food[field] * factor, 2)
+                        for field in NUTRIENT_FIELDS
+                    }
+                    food_name = catalog_food["name"]
+                    quantity = f"{amount_g:g} g"
+                else:
+                    nutrient_values = {
+                        field: _number(values[field][index] if index < len(values[field]) else 0)
+                        for field in NUTRIENT_FIELDS
+                    }
+                    food_name = food.strip()
+                    quantity = (
+                        quantities[index].strip()
+                        if index < len(quantities) and quantities[index].strip()
+                        else "1 porção"
+                    )
                 for field, value in nutrient_values.items():
                     totals[field] += value
                 items.append(
                     (
                         meal_names[index].strip() if index < len(meal_names) else "Refeição",
-                        food.strip(),
-                        quantities[index].strip() if index < len(quantities) else "1 porção",
+                        food_name,
+                        quantity,
                         nutrient_values,
+                        catalog_food["id"] if catalog_food else None,
+                        amount_g or None,
                     )
                 )
-            db = get_db()
             db.execute("UPDATE meal_plans SET active = 0 WHERE patient_id = ?", (patient_id,))
             cursor = db.execute(
                 """INSERT INTO meal_plans
-                   (nutritionist_id, patient_id, title, objective, guidance, calories, protein, carbs, fat, fiber, calcium, iron)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (nutritionist_id, patient_id, title, objective, guidance,
+                    calories, protein, carbs, fat, fiber, calcium, iron,
+                    target_calories, target_protein, target_carbs, target_fat,
+                    target_fiber, target_calcium, target_iron)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     g.user["id"], patient_id, title,
                     request.form.get("objective", "").strip(),
                     request.form.get("guidance", "").strip(),
-                    *[round(totals[field], 2) for field in fields],
+                    *[round(totals[field], 2) for field in NUTRIENT_FIELDS],
+                    *[
+                        _number(request.form.get(f"target_{field}"))
+                        for field in NUTRIENT_FIELDS
+                    ],
                 ),
             )
-            for meal_name, food, quantity, nutrients in items:
+            for meal_name, food, quantity, nutrients, food_id, amount_g in items:
                 db.execute(
                     """INSERT INTO meal_items
-                       (plan_id, meal_name, food_name, quantity, calories, protein, carbs, fat, fiber, calcium, iron)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (cursor.lastrowid, meal_name, food, quantity, *[nutrients[f] for f in fields]),
+                       (plan_id, meal_name, food_name, quantity, calories, protein,
+                        carbs, fat, fiber, calcium, iron, food_id, amount_g)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        cursor.lastrowid,
+                        meal_name,
+                        food,
+                        quantity,
+                        *[nutrients[field] for field in NUTRIENT_FIELDS],
+                        food_id,
+                        amount_g,
+                    ),
                 )
             db.commit()
             flash("Plano alimentar criado e disponibilizado ao paciente.", "success")
             return redirect(url_for("main.plan_detail", plan_id=cursor.lastrowid))
-    return render_template("plan_form.html", patient=patient)
+    return render_template(
+        "plan_form.html",
+        patient=patient,
+        foods_catalog=foods_catalog,
+        foods_payload=[dict(food) for food in foods_catalog],
+        model=model,
+        model_items=model_items,
+    )
 
 
 @bp.get("/planos/<int:plan_id>")
 @login_required
 def plan_detail(plan_id: int):
     db = get_db()
-    plan = db.execute(
-        """SELECT mp.*, p.name AS patient_name, n.name AS nutritionist_name
-           FROM meal_plans mp JOIN users p ON p.id = mp.patient_id JOIN users n ON n.id = mp.nutritionist_id
-           WHERE mp.id = ?""",
-        (plan_id,),
-    ).fetchone()
-    if not plan or (
-        g.user["id"] not in {plan["nutritionist_id"], plan["patient_id"]}
-    ):
-        abort(404)
-    items = db.execute(
-        "SELECT * FROM meal_items WHERE plan_id = ? ORDER BY id", (plan_id,)
-    ).fetchall()
+    plan = _plan_for_current_user(plan_id)
+    items = _plan_items(plan_id)
+    meals = {}
+    alternatives = {}
+    for item in items:
+        meals.setdefault(item["meal_name"], []).append(item)
+        if item["food_category"]:
+            alternatives[item["id"]] = db.execute(
+                """SELECT name, household_measure FROM foods
+                   WHERE category = ? AND id != ? AND active = 1
+                   ORDER BY ABS(calories - ?) LIMIT 2""",
+                (
+                    item["food_category"],
+                    item["food_id"],
+                    item["food_calories_100g"],
+                ),
+            ).fetchall()
+    progress = {
+        field: round(plan[field] / plan[f"target_{field}"] * 100)
+        if plan[f"target_{field}"]
+        else None
+        for field in NUTRIENT_FIELDS
+    }
+    return render_template(
+        "plan_detail.html",
+        plan=plan,
+        meals=meals,
+        alternatives=alternatives,
+        progress=progress,
+    )
+
+
+@bp.get("/planos/<int:plan_id>/imprimir")
+@login_required
+def print_plan(plan_id: int):
+    plan = _plan_for_current_user(plan_id)
+    items = _plan_items(plan_id)
     meals = {}
     for item in items:
         meals.setdefault(item["meal_name"], []).append(item)
-    return render_template("plan_detail.html", plan=plan, meals=meals)
+    return render_template("plan_print.html", plan=plan, meals=meals)
 
 
 @bp.route("/diario", methods=["GET", "POST"])

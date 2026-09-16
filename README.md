@@ -11,7 +11,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.0.0-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.1.0-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -23,6 +23,18 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. A versão atual não substitui prontuário clínico certificado nem aconselhamento profissional.
 
+## Novidades da v1.1.0 — Catálogo Inteligente
+
+- catálogo inicial de alimentos brasileiros baseado na TACO 4ª edição;
+- busca por nome e filtragem por categoria alimentar;
+- cálculo automático no navegador e recálculo seguro no servidor por quantidade;
+- metas de energia, macro e micronutrientes por plano;
+- indicadores de adequação entre totais calculados e metas definidas;
+- alternativas da mesma categoria para apoiar substituições;
+- reutilização de planos anteriores como modelo, sem alterar o original;
+- documento profissional otimizado para impressão ou salvamento em PDF;
+- migração automática que preserva bancos criados na v1.0.0.
+
 ## Funcionalidades
 
 ### Para nutricionistas
@@ -31,7 +43,11 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - cadastro e vínculo de pacientes ao consultório;
 - prontuário resumido com objetivo, peso, planos e diário recente;
 - criação rápida de planos por refeições;
-- soma automática de calorias, proteínas, carboidratos, gorduras, fibras, cálcio e ferro;
+- catálogo brasileiro pesquisável durante a prescrição;
+- cálculo automático de calorias, proteínas, carboidratos, gorduras, fibras, cálcio e ferro;
+- definição de metas e visualização de adequação nutricional;
+- reutilização de planos como modelo e sugestões de alternativas;
+- impressão profissional do plano em PDF pelo navegador;
 - publicação do plano diretamente na conta do paciente;
 - agenda para consultas presenciais e online;
 - chat contextualizado com cada paciente.
@@ -131,6 +147,7 @@ Nexus-Nutra/
 │   └── js/app.js
 ├── templates/
 ├── tests/
+├── CHANGELOG.md
 ├── app.py
 ├── schema.sql
 └── requirements.txt
@@ -150,12 +167,11 @@ flowchart LR
 
 ## Roadmap
 
-### v1.1 — Base alimentar brasileira
+### v1.1.0 — Catálogo Inteligente ✅
 
-- catálogo de alimentos TBCA/TACO com busca e porções;
-- cálculo nutricional a partir da quantidade e composição cadastrada;
-- substituições equivalentes e modelos de plano reutilizáveis;
-- exportação do plano em PDF.
+- catálogo TACO inicial com busca, categorias e medidas caseiras;
+- cálculo por quantidade, metas e indicadores de adequação;
+- alternativas alimentares, reaproveitamento de planos e impressão/PDF.
 
 ### v1.2 — Agenda e automações
 
@@ -190,6 +206,12 @@ flowchart LR
 Dados de saúde exigem cuidado especial. Antes do uso em produção, implemente HTTPS, política de retenção, consentimento, controle granular de acesso, logs de auditoria, backup criptografado, recuperação de desastre e avaliação jurídica/técnica de conformidade com a LGPD.
 
 Vulnerabilidades não devem ser publicadas em issues abertas. Comunique o mantenedor por um canal privado.
+
+## Fontes nutricionais
+
+O catálogo inicial utiliza uma seleção de valores por 100 g da **Tabela Brasileira de Composição de Alimentos — TACO, 4ª edição**, publicada pelo NEPA/UNICAMP. Medidas caseiras são referências de interface e não substituem a avaliação profissional.
+
+- [NEPA/UNICAMP — Tabela TACO 4ª edição](https://nepa.unicamp.br/)
 
 ## Identidade
 

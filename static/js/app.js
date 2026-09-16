@@ -51,6 +51,10 @@
   if (planForm) {
     const container = planForm.querySelector("[data-food-items]");
     const nutrientNames = ["calories", "protein", "carbs", "fat", "fiber", "calcium", "iron"];
+    const catalogNode = planForm.querySelector("[data-food-catalog]");
+    const catalog = catalogNode ? JSON.parse(catalogNode.textContent || "[]") : [];
+    const normalize = (value) => value.trim().toLocaleLowerCase("pt-BR");
+    const catalogByName = new Map(catalog.map((food) => [normalize(food.name), food]));
     const renumber = () => {
       container.querySelectorAll("[data-food-row]").forEach((row, index) => {
         const number = row.querySelector("[data-row-number]");
@@ -65,8 +69,35 @@
       const output = planForm.querySelector(`[data-total='${name}']`);
       if (output) output.textContent = name === "calories" ? String(Math.round(total)) : total.toFixed(1);
     });
+    const calculateRow = (row) => {
+      const search = row.querySelector("[data-food-search]");
+      const amount = Number.parseFloat(row.querySelector("[data-amount-g]")?.value) || 0;
+      const food = catalogByName.get(normalize(search?.value || ""));
+      const foodId = row.querySelector("[data-food-id]");
+      const status = row.querySelector("[data-catalog-status]");
+      const source = row.querySelector("[data-food-source]");
+      if (!food) {
+        if (foodId) foodId.value = "";
+        if (status) status.textContent = "Preenchimento manual";
+        if (source) source.textContent = "Alimento fora do catálogo: informe os nutrientes manualmente.";
+        totals();
+        return;
+      }
+      if (foodId) foodId.value = String(food.id);
+      if (status) status.textContent = "Catálogo TACO";
+      if (source) source.textContent = food.source + " · " + food.household_measure;
+      if (amount > 0) {
+        nutrientNames.forEach((name) => {
+          const input = row.querySelector("[data-nutrient='" + name + "']");
+          if (input) input.value = ((Number(food[name]) || 0) * amount / 100).toFixed(1);
+        });
+      }
+      totals();
+    };
     const bindRow = (row) => {
       row.querySelectorAll("[data-nutrient]").forEach((input) => input.addEventListener("input", totals));
+      row.querySelector("[data-food-search]")?.addEventListener("change", () => calculateRow(row));
+      row.querySelector("[data-amount-g]")?.addEventListener("input", () => calculateRow(row));
       row.querySelector("[data-remove-food]")?.addEventListener("click", () => {
         if (container.querySelectorAll("[data-food-row]").length > 1) {
           row.remove(); renumber(); totals();
@@ -77,7 +108,13 @@
     planForm.querySelector("[data-add-food]")?.addEventListener("click", () => {
       const original = container.querySelector("[data-food-row]");
       const clone = original.cloneNode(true);
-      clone.querySelectorAll("input").forEach((input) => input.value = input.hasAttribute("data-nutrient") ? "0" : "");
+      clone.querySelectorAll("input").forEach((input) => {
+        input.value = input.hasAttribute("data-nutrient") ? "0" : "";
+      });
+      const status = clone.querySelector("[data-catalog-status]");
+      const source = clone.querySelector("[data-food-source]");
+      if (status) status.textContent = "Preenchimento manual";
+      if (source) source.textContent = "Selecione um alimento do catálogo para cálculo automático.";
       bindRow(clone); container.appendChild(clone); renumber(); totals();
       clone.scrollIntoView({ behavior: "smooth", block: "center" });
     });
