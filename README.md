@@ -148,6 +148,7 @@ Nexus-Nutra/
 ├── templates/
 ├── tests/
 ├── CHANGELOG.md
+├── ROADMAP.md
 ├── app.py
 ├── schema.sql
 └── requirements.txt
@@ -167,39 +168,19 @@ flowchart LR
 
 ## Roadmap
 
-### v1.1.0 — Catálogo Inteligente ✅
+| Versão | Nome | Foco principal |
+|---|---|---|
+| v1.1.0 | Catálogo Inteligente ✅ | alimentos TACO, metas, alternativas e impressão |
+| v1.2.0 | Agenda Segura | disponibilidade, automações, auditoria e segurança de contas |
+| v1.3.0 | Prontuário Clínico | anamnese, antropometria, evolução e consentimentos |
+| v1.4.0 | Inteligência Nutricional | receitas, catálogo ampliado, nutrientes e relatórios |
+| v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |
+| v1.6.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |
+| v1.7.0 | Integrações | API, calendários, videoconferência, webhooks e wearables |
+| v1.8.0 | Produção e Escala | PostgreSQL, filas, backups, observabilidade e infraestrutura |
+| v2.0.0 | Nexus Nutra Platform | SaaS multiempresa, assinaturas e personalização |
 
-- catálogo TACO inicial com busca, categorias e medidas caseiras;
-- cálculo por quantidade, metas e indicadores de adequação;
-- alternativas alimentares, reaproveitamento de planos e impressão/PDF.
-
-### v1.2 — Agenda e automações
-
-- disponibilidade do profissional e solicitação de horários;
-- lembretes por e-mail e notificações;
-- confirmação, cancelamento e reagendamento;
-- integração com provedores de videoconferência.
-
-### v1.3 — Avaliação nutricional
-
-- anamnese configurável;
-- antropometria e composição corporal;
-- metas clínicas e relatórios comparativos;
-- anexos e registro de consentimentos.
-
-### v1.4 — Operação de clínicas
-
-- múltiplos profissionais e unidades;
-- permissões por função;
-- indicadores operacionais e financeiros;
-- trilha de auditoria e adequações avançadas à LGPD.
-
-### v2.0 — Plataforma Nexus Nutra
-
-- API versionada e aplicativo instalável (PWA);
-- base PostgreSQL e tarefas assíncronas;
-- integrações com pagamentos, calendários e wearables;
-- infraestrutura de produção, observabilidade e backups.
+Consulte o [roadmap completo](ROADMAP.md) para prioridades, dependências, critérios de entrega e melhorias transversais.
 
 ## Segurança e privacidade
 

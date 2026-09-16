@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
+## [Não publicado]
+
+### Documentação
+
+- roadmap estratégico detalhado da v1.2.0 à v2.0.0;
+- diagnóstico de lacunas, prioridades, dependências e critérios de entrega;
+- referências de mercado, segurança, privacidade e evolução arquitetural.
+
 ## [1.1.0] — 2026-09-16 — Catálogo Inteligente
 
 ### Adicionado
