@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from io import BytesIO
 from urllib.parse import urlsplit
 
 import pytest
@@ -346,7 +347,7 @@ def test_versioned_migrations_create_security_foundation(app):
             row["name"] for row in db.execute("PRAGMA table_info(appointments)")
         }
         user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
-        assert versions == {1, 2, 3}
+        assert versions == {1, 2, 3, 4}
         assert {"duration_minutes", "reminder_minutes", "cancellation_reason"} <= appointment_columns
         assert {"failed_login_attempts", "locked_until", "session_version"} <= user_columns
         assert db.execute(
@@ -630,3 +631,140 @@ def test_production_rejects_incomplete_identity_configuration(tmp_path, monkeypa
     monkeypatch.setenv("PUBLIC_BASE_URL", "http://nutra.example.com")
     with pytest.raises(RuntimeError, match="Configuração de produção incompleta"):
         create_app({"DATABASE": str(tmp_path / "production.db")})
+
+
+def test_clinical_record_preserves_versions_and_calculates_metrics(app, client, token):
+    logged_token, nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    path = f"/pacientes/{patient_id}/prontuario"
+
+    response = client.post(
+        path + "/anamnese",
+        data={
+            "csrf_token": logged_token,
+            "medical_history": "Hipertensão controlada",
+            "allergies": "Amendoim",
+            "water_intake_liters": "2,3",
+        },
+        follow_redirects=True,
+    )
+    assert b"vers\xc3\xa3o 1" in response.data
+    client.post(
+        path + "/anamnese",
+        data={
+            "csrf_token": logged_token,
+            "medical_history": "Hipertensão controlada e acompanhada",
+            "allergies": "Amendoim",
+            "water_intake_liters": "2.5",
+        },
+    )
+    response = client.post(
+        path + "/avaliacoes",
+        data={
+            "csrf_token": logged_token,
+            "assessed_on": "2026-09-17",
+            "weight_kg": "70",
+            "height_cm": "175",
+            "waist_cm": "80",
+            "hip_cm": "100",
+            "bmi": "999",
+            "body_fat_percent": "22",
+        },
+        follow_redirects=True,
+    )
+    assert b"c\xc3\xa1lculo autom\xc3\xa1tico de IMC" in response.data
+    assert b"22.9" in response.data
+
+    with app.app_context():
+        db = get_db()
+        anamneses = db.execute(
+            "SELECT version, medical_history FROM anamnesis_versions ORDER BY version"
+        ).fetchall()
+        assessment = db.execute("SELECT * FROM anthropometric_assessments").fetchone()
+        assert [(row["version"], row["medical_history"]) for row in anamneses] == [
+            (1, "Hipertensão controlada"),
+            (2, "Hipertensão controlada e acompanhada"),
+        ]
+        assert assessment["nutritionist_id"] == nutritionist_id
+        assert assessment["bmi"] == 22.86
+        assert assessment["waist_hip_ratio"] == 0.8
+        assert db.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE action LIKE 'clinical.%'"
+        ).fetchone()[0] == 3
+
+
+def test_clinical_notes_consents_report_and_access_control(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    path = f"/pacientes/{patient_id}/prontuario"
+    client.post(
+        path + "/notas",
+        data={
+            "csrf_token": logged_token,
+            "note_type": "goal",
+            "title": "Meta de curto prazo",
+            "content": "Aumentar consumo de fibras durante quatro semanas.",
+        },
+    )
+    client.post(
+        path + "/consentimentos",
+        data={
+            "csrf_token": logged_token,
+            "purpose": "Acompanhamento remoto",
+            "policy_version": "2026.1",
+            "status": "granted",
+        },
+    )
+    report = client.get(path + "/relatorio")
+    assert report.status_code == 200
+    assert b"Marina Nutricionista" in report.data
+    assert b"CRN-6 12345" in report.data
+    assert b"Meta de curto prazo" in report.data
+    assert b"IMC = peso" in report.data
+
+    client.post("/logout", data={"csrf_token": logged_token})
+    client.get("/login")
+    with client.session_transaction() as session:
+        patient_token = session["csrf_token"]
+    login(client, patient_token, "joao@example.com", "senha-paciente")
+    assert client.get(path).status_code == 403
+    assert client.get(path + "/relatorio").status_code == 403
+
+
+def test_clinical_attachment_validates_type_and_restricts_download(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    path = f"/pacientes/{patient_id}/prontuario"
+    rejected = client.post(
+        path + "/anexos",
+        data={
+            "csrf_token": logged_token,
+            "attachment": (BytesIO(b"not executable"), "laudo.exe"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"PDF, JPG ou PNG" in rejected.data
+
+    accepted = client.post(
+        path + "/anexos",
+        data={
+            "csrf_token": logged_token,
+            "attachment": (BytesIO(b"%PDF-1.4 clinical"), "exame.pdf"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"Documento anexado" in accepted.data
+    with app.app_context():
+        attachment = get_db().execute("SELECT * FROM clinical_attachments").fetchone()
+        assert attachment["original_name"] == "exame.pdf"
+        assert attachment["stored_name"] != "exame.pdf"
+        attachment_id = attachment["id"]
+    downloaded = client.get(path + f"/anexos/{attachment_id}")
+    assert downloaded.status_code == 200
+    assert downloaded.data == b"%PDF-1.4 clinical"
+    assert "attachment" in downloaded.headers["Content-Disposition"]

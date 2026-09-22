@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Prontuário de {{ patient.name }} — Nexus Nutra{% endblock %}
+{% block content %}
+<header class="page-header with-action clinical-hero">
+  <div>
+    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Visão do paciente</a>
+    <div class="patient-title">
+      <span class="avatar xlarge">{{ patient.name[:1] }}</span>
+      <div><span class="eyebrow">PRONTUÁRIO CLÍNICO · V1.3</span><h1>{{ patient.name }}</h1><p>{{ patient.email }} · {{ patient.phone or 'Telefone não informado' }}</p></div>
+    </div>
+  </div>
+  <div class="header-actions"><a class="button button-secondary" href="{{ url_for('clinical.report', patient_id=patient.id) }}" target="_blank">Gerar relatório</a><a class="button button-primary" href="#avaliacoes">+ Nova avaliação</a></div>
+</header>
+
+<nav class="record-tabs" aria-label="Seções do prontuário">
+  <a href="#resumo">Resumo</a><a href="#anamnese">Anamnese</a><a href="#avaliacoes">Avaliações</a><a href="#evolucao">Evolução</a><a href="#consentimentos">Consentimentos</a><a href="#anexos">Anexos</a>
+</nav>
+
+<section id="resumo" class="stat-grid clinical-stats">
+  <article class="stat-card"><div><small>IMC atual</small><strong>{{ '%.1f'|format(assessments[0].bmi) if assessments else '—' }}</strong><span>{{ 'kg/m²' if assessments else 'Sem avaliação' }}</span></div></article>
+  <article class="stat-card"><div><small>Peso atual</small><strong>{{ '%.1f'|format(assessments[0].weight_kg) if assessments else '—' }} <em>{{ 'kg' if assessments else '' }}</em></strong><span>{% if assessments|length > 1 %}{{ '%+.1f'|format(assessments[0].weight_kg - assessments[1].weight_kg) }} kg desde a anterior{% else %}Primeira medida{% endif %}</span></div></article>
+  <article class="stat-card"><div><small>Gordura corporal</small><strong>{{ '%.1f'|format(assessments[0].body_fat_percent) if assessments and assessments[0].body_fat_percent else '—' }} <em>{{ '%' if assessments and assessments[0].body_fat_percent else '' }}</em></strong><span>Informada pelo profissional</span></div></article>
+  <article class="stat-card"><div><small>Última avaliação</small><strong class="text-value">{{ assessments[0].assessed_on|brdate if assessments else 'Pendente' }}</strong><span>{{ assessments|length }} registro{{ 's' if assessments|length != 1 else '' }}</span></div></article>
+</section>
+
+<section id="anamnese" class="panel clinical-section">
+  <div class="panel-header"><div><span class="section-kicker">01 · HISTÓRICO</span><h2>Anamnese nutricional</h2><p>Cada salvamento cria uma nova versão e preserva a anterior.</p></div>{% if anamnesis %}<span class="badge badge-success">Versão {{ anamnesis.version }}</span>{% endif %}</div>
+  {% if anamnesis %}
+  <div class="anamnesis-summary">
+    {% for label, field in [('Histórico clínico','medical_history'),('Histórico familiar','family_history'),('Rotina alimentar','dietary_history'),('Atividade física','activity_history'),('Alergias','allergies'),('Intolerâncias','intolerances'),('Preferências','preferences'),('Restrições','restrictions'),('Medicamentos','medications'),('Suplementos','supplements'),('Sintomas','symptoms'),('Sono','sleep_notes'),('Hábito intestinal','bowel_habits')] %}
+      <div><small>{{ label }}</small><p>{{ anamnesis[field] or 'Não informado' }}</p></div>
+    {% endfor %}
+    <div><small>Consumo de água</small><p>{{ ('%.1f L/dia'|format(anamnesis.water_intake_liters)) if anamnesis.water_intake_liters else 'Não informado' }}</p></div>
+  </div>
+  <p class="record-authorship">Registrada por {{ anamnesis.author_name }} em {{ anamnesis.created_at|brdate }}</p>
+  {% else %}<div class="empty-inline"><p>Complete a primeira anamnese para centralizar os dados clínicos.</p></div>{% endif %}
+  <details class="record-editor" {% if not anamnesis %}open{% endif %}><summary>{{ 'Criar nova versão' if anamnesis else 'Preencher anamnese' }}</summary>
+    <form class="clinical-form" method="post" action="{{ url_for('clinical.save_anamnesis', patient_id=patient.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for label, field, hint in [('Histórico clínico','medical_history','Diagnósticos, cirurgias e condições relevantes'),('Histórico familiar','family_history','Condições recorrentes na família'),('Histórico alimentar','dietary_history','Rotina, horários e relação com a alimentação'),('Atividade física','activity_history','Modalidade, frequência e intensidade'),('Alergias','allergies','Alimentos ou substâncias e reações'),('Intolerâncias','intolerances','Intolerâncias confirmadas ou relatadas'),('Preferências','preferences','Alimentos preferidos e contexto cultural'),('Restrições','restrictions','Restrições clínicas, religiosas ou pessoais'),('Medicamentos','medications','Nome, dose e frequência'),('Suplementos','supplements','Produto, dose e frequência'),('Sintomas','symptoms','Sintomas atuais e frequência'),('Sono','sleep_notes','Duração e qualidade percebida'),('Hábito intestinal','bowel_habits','Frequência, consistência e observações')] %}
+      <label>{{ label }}<textarea name="{{ field }}" rows="3" placeholder="{{ hint }}">{{ anamnesis[field] if anamnesis else '' }}</textarea></label>
+      {% endfor %}
+      <label>Água (litros/dia)<input type="number" name="water_intake_liters" min="0.1" max="20" step="0.1" value="{{ anamnesis.water_intake_liters if anamnesis and anamnesis.water_intake_liters else '' }}" placeholder="2,0"></label>
+      <div class="form-footer"><p>Os dados anteriores não serão sobrescritos.</p><button class="button button-primary" type="submit">Salvar nova versão</button></div>
+    </form>
+  </details>
+</section>
+
+<section id="avaliacoes" class="panel clinical-section">
+  <div class="panel-header"><div><span class="section-kicker">02 · ANTROPOMETRIA</span><h2>Avaliações e comparação</h2><p>IMC e RCQ calculados automaticamente com as medidas registradas.</p></div></div>
+  {% if assessments %}<div class="table-wrap"><table class="clinical-table"><thead><tr><th>Data</th><th>Peso</th><th>IMC</th><th>Cintura</th><th>Quadril</th><th>RCQ</th><th>Gordura</th></tr></thead><tbody>{% for item in assessments %}<tr><td><strong>{{ item.assessed_on|brdate }}</strong><small>{{ item.author_name }}</small></td><td>{{ '%.1f kg'|format(item.weight_kg) }}</td><td><span class="metric-pill">{{ '%.1f'|format(item.bmi) }}</span></td><td>{{ ('%.1f cm'|format(item.waist_cm)) if item.waist_cm else '—' }}</td><td>{{ ('%.1f cm'|format(item.hip_cm)) if item.hip_cm else '—' }}</td><td>{{ ('%.2f'|format(item.waist_hip_ratio)) if item.waist_hip_ratio else '—' }}</td><td>{{ ('%.1f%%'|format(item.body_fat_percent)) if item.body_fat_percent else '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-inline"><p>Nenhuma avaliação antropométrica registrada.</p></div>{% endif %}
+  <details class="record-editor" {% if not assessments %}open{% endif %}><summary>Adicionar avaliação</summary>
+    <form class="clinical-form measurement-form" method="post" action="{{ url_for('clinical.add_assessment', patient_id=patient.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Data<input type="date" name="assessed_on" value="{{ today }}" required></label><label>Peso (kg)<input type="number" name="weight_kg" min="1" max="500" step="0.1" required></label><label>Altura (cm)<input type="number" name="height_cm" min="50" max="260" step="0.1" value="{{ patient.height_cm or '' }}" required></label>
+      {% for label, field in [('Cintura (cm)','waist_cm'),('Abdômen (cm)','abdomen_cm'),('Quadril (cm)','hip_cm'),('Braço (cm)','arm_cm'),('Coxa (cm)','thigh_cm'),('Panturrilha (cm)','calf_cm'),('Gordura corporal (%)','body_fat_percent'),('Massa muscular (kg)','muscle_mass_kg'),('Gordura visceral','visceral_fat')] %}<label>{{ label }}<input type="number" name="{{ field }}" min="0.1" step="0.1"></label>{% endfor %}
+      <label class="wide-field">Observações<textarea name="notes" rows="3" placeholder="Protocolo utilizado, condições da aferição e observações clínicas"></textarea></label>
+      <div class="formula-note wide-field"><strong>Fórmulas</strong><span>IMC = peso (kg) ÷ altura² (m) · RCQ = cintura (cm) ÷ quadril (cm). Indicadores de triagem; a interpretação é responsabilidade do profissional.</span></div>
+      <div class="form-footer wide-field"><p>O cálculo é feito no servidor.</p><button class="button button-primary" type="submit">Registrar avaliação</button></div>
+    </form>
+  </details>
+</section>
+
+<div class="content-grid two-one clinical-bottom-grid">
+  <section id="evolucao" class="panel clinical-section"><div class="panel-header"><div><span class="section-kicker">03 · ACOMPANHAMENTO</span><h2>Linha do tempo clínica</h2></div></div>
+    {% if notes %}<div class="clinical-timeline">{% for note in notes %}<article><span></span><div><div class="timeline-heading"><strong>{{ note.title }}</strong><span class="badge badge-neutral">{{ {'evolution':'Evolução','goal':'Meta clínica','observation':'Observação'}[note.note_type] }}</span></div><p>{{ note.content }}</p><small>{{ note.author_name }} · {{ note.created_at|brdate }}</small></div></article>{% endfor %}</div>{% else %}<div class="empty-inline"><p>Sem notas clínicas até o momento.</p></div>{% endif %}
+    <details class="record-editor"><summary>Adicionar registro</summary><form class="clinical-form single-column" method="post" action="{{ url_for('clinical.add_note', patient_id=patient.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Tipo<select name="note_type"><option value="evolution">Evolução</option><option value="goal">Meta clínica</option><option value="observation">Observação</option></select></label><label>Título<input name="title" maxlength="120" required></label><label>Registro<textarea name="content" rows="5" required></textarea></label><button class="button button-primary" type="submit">Adicionar à linha do tempo</button></form></details>
+  </section>
+  <section id="consentimentos" class="panel clinical-section"><div class="panel-header"><div><span class="section-kicker">04 · PRIVACIDADE</span><h2>Consentimentos</h2><p>Eventos rastreáveis de concessão e revogação.</p></div></div>
+    {% if consents %}<div class="consent-list">{% for consent in consents %}<article><span class="badge badge-{{ 'success' if consent.status == 'granted' else ('danger' if consent.status == 'revoked' else 'warning') }}">{{ {'granted':'Concedido','revoked':'Revogado','pending':'Pendente'}[consent.status] }}</span><div><strong>{{ consent.purpose }}</strong><small>Política {{ consent.policy_version }} · {{ consent.recorded_at|brdate }}</small></div></article>{% endfor %}</div>{% endif %}
+    <details class="record-editor" {% if not consents %}open{% endif %}><summary>Registrar consentimento</summary><form class="clinical-form single-column" method="post" action="{{ url_for('clinical.add_consent', patient_id=patient.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Finalidade<input name="purpose" placeholder="Ex.: teleconsulta e acompanhamento remoto" required></label><label>Versão da política<input name="policy_version" value="2026.1" required></label><label>Situação<select name="status"><option value="granted">Concedido</option><option value="pending">Pendente</option><option value="revoked">Revogado</option></select></label><button class="button button-primary" type="submit">Registrar evento</button></form></details>
+  </section>
+</div>
+
+<section id="anexos" class="panel clinical-section attachments-panel">
+  <div class="panel-header"><div><span class="section-kicker">05 · DOCUMENTOS</span><h2>Anexos clínicos</h2><p>PDF e imagens protegidos pelo vínculo entre profissional e paciente.</p></div><span class="badge badge-neutral">Máximo 5 MB</span></div>
+  {% if attachments %}<div class="attachment-list">{% for attachment in attachments %}<a href="{{ url_for('clinical.download_attachment', patient_id=patient.id, attachment_id=attachment.id) }}"><span class="attachment-icon">{{ 'PDF' if attachment.mime_type == 'application/pdf' else 'IMG' }}</span><div><strong>{{ attachment.original_name }}</strong><small>{{ '%.1f KB'|format(attachment.size_bytes / 1024) }} · {{ attachment.author_name }} · {{ attachment.created_at|brdate }}</small></div><b>Baixar</b></a>{% endfor %}</div>{% else %}<div class="empty-inline"><p>Nenhum documento anexado.</p></div>{% endif %}
+  <form class="attachment-form" method="post" enctype="multipart/form-data" action="{{ url_for('clinical.add_attachment', patient_id=patient.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label><span>Adicionar documento</span><input type="file" name="attachment" accept="application/pdf,image/jpeg,image/png" required></label><button class="button button-primary" type="submit">Enviar anexo</button>
+  </form>
+</section>
+{% endblock %}

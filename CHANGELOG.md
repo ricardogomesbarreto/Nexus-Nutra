@@ -6,9 +6,33 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
 ### Planejado
 
-- prontuário com anamnese e avaliação antropométrica;
-- separação progressiva dos demais domínios em blueprints;
+- receitas, alimentos personalizados e catálogo ampliado;
+- versionamento de planos alimentares publicados;
 - testes de navegador para os fluxos críticos de identidade e agenda.
+
+## [1.3.0] — 2026-09-17 — Prontuário Clínico
+
+### Adicionado
+
+- anamnese estruturada com versões imutáveis e autoria;
+- histórico clínico, familiar, alimentar, de atividade, alergias e restrições;
+- registro de medicamentos, suplementos, sintomas, sono, água e hábito intestinal;
+- avaliações antropométricas longitudinais com composição corporal e circunferências;
+- cálculo no servidor de IMC e relação cintura–quadril, com fórmulas e limitações visíveis;
+- notas de evolução, metas clínicas e observações com linha do tempo;
+- eventos versionados de consentimento por finalidade;
+- anexos PDF, JPG e PNG de até 5 MB, validados por extensão, MIME e assinatura;
+- relatório clínico profissional pronto para impressão ou PDF;
+- migration v4 e blueprint clínico dedicado;
+- três novos cenários automatizados, elevando a suíte para 18 testes.
+
+### Segurança
+
+- acesso ao prontuário, relatório e anexos restrito ao nutricionista vinculado;
+- nomes internos aleatórios para anexos e downloads mediados pela aplicação;
+- histórico clínico preservado sem atualização destrutiva;
+- trilha de auditoria para anamnese, avaliação, nota, consentimento e anexo;
+- valores antropométricos derivados são recalculados no servidor.
 
 ## [1.2.1] — 2026-09-16 — Identidade Segura
 

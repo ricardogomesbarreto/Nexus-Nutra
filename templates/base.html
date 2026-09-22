@@ -22,7 +22,7 @@
       <nav class="side-nav" aria-label="Navegação principal">
         <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><span>⌂</span> Visão geral</a>
         {% if g.user.role == 'nutritionist' %}
-          <a class="nav-link {{ 'active' if request.endpoint in ['main.patients', 'main.patient_detail', 'main.new_patient', 'main.new_plan', 'main.plan_detail'] }}" href="{{ url_for('main.patients') }}"><span>♙</span> Pacientes</a>
+          <a class="nav-link {{ 'active' if request.endpoint in ['main.patients', 'main.patient_detail', 'main.new_patient', 'main.new_plan', 'main.plan_detail'] or request.blueprint == 'clinical' }}" href="{{ url_for('main.patients') }}"><span>♙</span> Pacientes</a>
           <a class="nav-link {{ 'active' if request.endpoint == 'main.food_catalog' }}" href="{{ url_for('main.food_catalog') }}"><span>⌕</span> Catálogo alimentar</a>
         {% else %}
           <a class="nav-link {{ 'active' if request.endpoint == 'main.diary' }}" href="{{ url_for('main.diary') }}"><span>◫</span> Diário alimentar</a>

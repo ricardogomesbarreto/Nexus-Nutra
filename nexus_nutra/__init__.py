@@ -10,6 +10,7 @@ from pathlib import Path
 from flask import Flask, render_template
 
 from .auth import bp as auth_bp
+from .clinical import bp as clinical_bp
 from .db import close_db, init_db
 from .routes import bp
 
@@ -28,6 +29,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
         DATABASE=os.getenv(
             "DATABASE_PATH", str(Path(app.instance_path) / "nexus_nutra.db")
+        ),
+        CLINICAL_UPLOAD_FOLDER=os.getenv(
+            "CLINICAL_UPLOAD_FOLDER", str(Path(app.instance_path) / "clinical_uploads")
         ),
         MAX_CONTENT_LENGTH=5 * 1024 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
@@ -70,9 +74,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    Path(app.config["CLINICAL_UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     app.teardown_appcontext(close_db)
     app.register_blueprint(bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(clinical_bp)
 
     with app.app_context():
         init_db()

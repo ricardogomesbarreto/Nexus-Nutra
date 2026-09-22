@@ -11,7 +11,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.2.1-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.3.0-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -21,20 +21,19 @@ O **Nexus Nutra** é uma aplicação da linha Nexus criada para aproximar o aten
 
 Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segura, testável e responsiva para a evolução do produto.
 
-> **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. A versão atual não substitui prontuário clínico certificado nem aconselhamento profissional.
+> **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. Antes de uso assistencial em produção, valide requisitos jurídicos, LGPD, retenção e certificações aplicáveis ao seu contexto.
 
-## Novidades da v1.2.1 — Identidade Segura
+## Novidades da v1.3.0 — Prontuário Clínico
 
-- confirmação de e-mail obrigatória e reenvio controlado para novas contas;
-- recuperação de senha com resposta que não revela se um endereço está cadastrado;
-- tokens aleatórios de uso único, armazenados somente como hash;
-- validade de 24 horas para confirmação e 30 minutos para recuperação;
-- revogação de todas as sessões anteriores após alteração da senha;
-- limitação de solicitações por conta e finalidade;
-- adaptador SMTP com TLS/SSL, autenticação opcional e modo seguro para desenvolvimento;
-- auditoria dos eventos de criação, verificação e recuperação da conta;
-- autenticação separada em blueprint próprio;
-- migration v3 compatível com contas e bancos das versões anteriores.
+- anamnese completa e versionada, sem sobrescrever o histórico;
+- avaliações antropométricas com comparação longitudinal;
+- IMC e relação cintura–quadril calculados no servidor;
+- evolução, metas clínicas e observações com autoria e data;
+- consentimentos específicos registrados como eventos rastreáveis;
+- anexos clínicos protegidos, com validação de tipo, tamanho e assinatura;
+- relatório profissional pronto para impressão ou PDF;
+- interface responsiva dedicada ao prontuário;
+- blueprint clínico e migration v4 compatível com instalações existentes.
 
 ## Funcionalidades
 
@@ -42,7 +41,9 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 - painel com pacientes, consultas, mensagens pendentes e planos ativos;
 - cadastro e vínculo de pacientes ao consultório;
-- prontuário resumido com objetivo, peso, planos e diário recente;
+- prontuário clínico com anamnese versionada, antropometria e linha do tempo;
+- comparação entre avaliações, consentimentos e anexos com acesso restrito;
+- relatório clínico profissional para impressão ou PDF;
 - criação rápida de planos por refeições;
 - catálogo brasileiro pesquisável durante a prescrição;
 - cálculo automático de calorias, proteínas, carboidratos, gorduras, fibras, cálcio e ferro;
@@ -70,7 +71,7 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - proteção CSRF em todas as operações de escrita;
 - cookies de sessão `HttpOnly` e `SameSite=Lax`;
 - expiração de sessão, revogação de outros dispositivos e bloqueio progressivo de login;
-- trilha de auditoria para ações sensíveis da agenda;
+- trilha de auditoria para ações sensíveis da agenda, identidade e prontuário;
 - consentimento de privacidade versionado;
 - confirmação de e-mail e recuperação de senha com tokens de uso único;
 - entrega transacional configurável por SMTP com TLS ou SSL;
@@ -86,7 +87,7 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 | Back-end | Python 3.10+ e Flask 3.1 |
 | Interface | Jinja2, HTML5, CSS3 e JavaScript puro |
 | Banco | SQLite 3 |
-| Segurança | Werkzeug, sessão Flask, CSRF e tokens de identidade com SHA-256 |
+| Segurança | Werkzeug, sessão Flask, CSRF, autorização por vínculo e tokens SHA-256 |
 | Comunicação | SMTP transacional com TLS/SSL |
 | Qualidade | Pytest, Ruff e GitHub Actions |
 
@@ -152,6 +153,7 @@ Nexus-Nutra/
 ├── nexus_nutra/
 │   ├── __init__.py
 │   ├── auth.py
+│   ├── clinical.py
 │   ├── db.py
 │   ├── mailer.py
 │   └── routes.py
@@ -189,7 +191,7 @@ flowchart LR
 | v1.1.0 | Catálogo Inteligente ✅ | alimentos TACO, metas, alternativas e impressão |
 | v1.2.0 | Agenda Segura ✅ | disponibilidade, conflitos, estados, ICS, auditoria e sessões |
 | v1.2.1 | Identidade Segura ✅ | recuperação de senha, verificação de e-mail e SMTP |
-| v1.3.0 | Prontuário Clínico | anamnese, antropometria, evolução e consentimentos clínicos |
+| v1.3.0 | Prontuário Clínico ✅ | anamnese, antropometria, evolução, anexos e consentimentos |
 | v1.4.0 | Inteligência Nutricional | receitas, catálogo ampliado, nutrientes e relatórios |
 | v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |
 | v1.6.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |

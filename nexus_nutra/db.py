@@ -168,10 +168,125 @@ def _migration_003_secure_identity(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_004_clinical_record(db: sqlite3.Connection) -> None:
+    """Prontuário clínico imutável e rastreável da v1.3.0."""
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS anamnesis_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            version INTEGER NOT NULL,
+            medical_history TEXT,
+            family_history TEXT,
+            dietary_history TEXT,
+            activity_history TEXT,
+            allergies TEXT,
+            intolerances TEXT,
+            preferences TEXT,
+            restrictions TEXT,
+            medications TEXT,
+            supplements TEXT,
+            symptoms TEXT,
+            sleep_notes TEXT,
+            water_intake_liters REAL,
+            bowel_habits TEXT,
+            created_by INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+            UNIQUE (nutritionist_id, patient_id, version)
+        );
+
+        CREATE TABLE IF NOT EXISTS anthropometric_assessments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            assessed_on TEXT NOT NULL,
+            weight_kg REAL NOT NULL CHECK (weight_kg > 0),
+            height_cm REAL NOT NULL CHECK (height_cm > 0),
+            bmi REAL NOT NULL CHECK (bmi > 0),
+            waist_cm REAL,
+            abdomen_cm REAL,
+            hip_cm REAL,
+            arm_cm REAL,
+            thigh_cm REAL,
+            calf_cm REAL,
+            body_fat_percent REAL,
+            muscle_mass_kg REAL,
+            visceral_fat REAL,
+            waist_hip_ratio REAL,
+            notes TEXT,
+            created_by INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+        );
+
+        CREATE TABLE IF NOT EXISTS clinical_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            note_type TEXT NOT NULL CHECK (note_type IN ('evolution', 'goal', 'observation')),
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            author_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
+        );
+
+        CREATE TABLE IF NOT EXISTS clinical_consents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            purpose TEXT NOT NULL,
+            policy_version TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('granted', 'revoked', 'pending')),
+            recorded_by INTEGER NOT NULL,
+            recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE RESTRICT
+        );
+
+        CREATE TABLE IF NOT EXISTS clinical_attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            original_name TEXT NOT NULL,
+            stored_name TEXT NOT NULL UNIQUE,
+            mime_type TEXT NOT NULL,
+            size_bytes INTEGER NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 5242880),
+            uploaded_by INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_anamnesis_patient_version
+            ON anamnesis_versions(nutritionist_id, patient_id, version DESC);
+        CREATE INDEX IF NOT EXISTS idx_assessments_patient_date
+            ON anthropometric_assessments(nutritionist_id, patient_id, assessed_on DESC);
+        CREATE INDEX IF NOT EXISTS idx_clinical_notes_patient_date
+            ON clinical_notes(nutritionist_id, patient_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_consents_patient_date
+            ON clinical_consents(nutritionist_id, patient_id, recorded_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_attachments_patient_date
+            ON clinical_attachments(nutritionist_id, patient_id, created_at DESC);
+        """
+    )
+
+
 MIGRATIONS = (
     (1, "v1.1.0_catalogo_inteligente", _migration_001_catalog),
     (2, "v1.2.0_agenda_segura", _migration_002_secure_agenda),
     (3, "v1.2.1_identidade_segura", _migration_003_secure_identity),
+    (4, "v1.3.0_prontuario_clinico", _migration_004_clinical_record),
 )
 
 

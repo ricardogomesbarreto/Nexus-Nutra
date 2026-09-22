@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 16 de setembro de 2026, após a entrega da v1.2.1.
+> Atualizado em 17 de setembro de 2026, após a entrega da v1.3.0.
 
 ## Visão
 
@@ -20,16 +20,16 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ## Estado atual
 
-| Área | Entregue até a v1.2.1 |
+| Área | Entregue até a v1.3.0 |
 |---|---|
 | Contas | Cadastro, login, perfis de nutricionista e paciente |
-| Pacientes | Vínculo, listagem, busca e prontuário resumido |
+| Pacientes | Vínculo, busca, anamnese versionada, antropometria, evolução, consentimentos, anexos e relatório clínico |
 | Planos | Criação, metas, macros, micronutrientes, modelos e impressão/PDF |
 | Alimentos | Catálogo inicial TACO, categorias, medidas e cálculo por quantidade |
 | Acompanhamento | Diário alimentar e evolução de peso |
 | Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
 | Segurança | CSRF, hash de senha, verificação de e-mail, recuperação segura, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
-| Qualidade | Blueprints iniciais, migrations numeradas, testes automatizados, Ruff e GitHub Actions |
+| Qualidade | Blueprints de autenticação e clínica, migrations numeradas, 18 testes, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
@@ -39,7 +39,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | P0 | Auditoria e consentimento existem em nível inicial, mas faltam política de retenção e exportação/exclusão de dados | Impede uso responsável com dados sensíveis |
 | P0 | SQLite e aplicação monolítica atendem ao MVP, mas limitam concorrência e crescimento | Risco operacional futuro |
 | P1 | Lembretes da agenda ainda são internos e não possuem entrega por e-mail, WhatsApp ou push | Menor alcance das automações |
-| P1 | Prontuário ainda não possui anamnese, avaliação antropométrica completa ou notas clínicas | Acompanhamento profissional incompleto |
+| P1 | Falta política operacional de retenção, exportação e exclusão do prontuário | Governança clínica ainda incompleta |
 | P1 | Catálogo é inicial e ainda não possui receitas, alimentos personalizados ou importação controlada | Prescrição ainda exige trabalho manual |
 | P1 | Diário não aceita fotos, sintomas, humor, água, atividade ou comentários do profissional | Menor contexto clínico e adesão |
 | P2 | Não há equipe, unidades, permissões granulares, financeiro ou indicadores da clínica | Limita operação multiprofissional |
@@ -51,7 +51,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 ~~~mermaid
 flowchart TD
     A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura ✅"]
-    S --> B["v1.3 · Prontuário Clínico"]
+    S --> B["v1.3 · Prontuário Clínico ✅"]
     B --> C["v1.4 · Inteligência Nutricional"]
     C --> D["v1.5 · Engajamento PWA"]
     D --> E["v1.6 · Gestão de Clínicas"]
@@ -126,6 +126,8 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 ### v1.3.0 — Prontuário e Avaliação Nutricional
 
 **Objetivo:** centralizar a avaliação clínica e permitir acompanhamento longitudinal estruturado.
+
+**Status:** entregue em 17 de setembro de 2026.
 
 #### Entregas
 
@@ -371,18 +373,18 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer agora
 
-1. preparar o prontuário clínico da v1.3.0;
+1. iniciar a inteligência nutricional da v1.4.0;
 2. separar os demais domínios em blueprints e serviços;
 3. criar testes de navegador das jornadas críticas;
 4. definir retenção, exportação e exclusão de dados;
-5. estruturar anamnese, antropometria e histórico clínico imutável.
+5. ampliar alimentos, receitas e versionamento de planos.
 
 ### Fazer em seguida
 
-1. anamnese e antropometria;
-2. notas de evolução e histórico imutável;
-3. receitas e alimentos personalizados;
-4. relatórios clínicos;
+1. receitas e alimentos personalizados;
+2. alertas de alergênicos e restrições;
+3. análise do diário versus metas do plano;
+4. relatórios de ingestão e versionamento de planos;
 5. PWA e notificações consentidas.
 
 ### Adiar até existir base operacional
