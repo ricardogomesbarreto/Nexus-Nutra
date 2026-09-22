@@ -10,7 +10,7 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 - versionamento de planos alimentares publicados;
 - testes de navegador para os fluxos críticos de identidade e agenda.
 
-## [1.3.0] — 2026-09-17 — Prontuário Clínico
+## [1.3.0] — 2026-09-22 — Prontuário Clínico
 
 ### Adicionado
 

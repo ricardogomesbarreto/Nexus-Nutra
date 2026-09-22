@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 17 de setembro de 2026, após a entrega da v1.3.0.
+> Atualizado em 22 de setembro de 2026, após a entrega da v1.3.0.
 
 ## Visão
 
@@ -127,7 +127,7 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 **Objetivo:** centralizar a avaliação clínica e permitir acompanhamento longitudinal estruturado.
 
-**Status:** entregue em 17 de setembro de 2026.
+**Status:** entregue em 22 de setembro de 2026.
 
 #### Entregas
 
