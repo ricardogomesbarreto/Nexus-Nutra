@@ -1,6 +1,8 @@
-<p align="center">
-  <img src="static/img/nexus-nutra-logo.jpeg" alt="Nexus Nutra" width="520">
-</p>
+<table align="center">
+  <tr>
+    <td bgcolor="#101A15"><img src="static/img/nexus-nutra-logo-transparent.png" alt="Nexus Nutra" width="520"></td>
+  </tr>
+</table>
 
 <p align="center">
   <strong>Nutrição conectada, cuidado que evolui.</strong><br>
@@ -11,7 +13,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.3.0-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.4.0-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -23,17 +25,17 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. Antes de uso assistencial em produção, valide requisitos jurídicos, LGPD, retenção e certificações aplicáveis ao seu contexto.
 
-## Novidades da v1.3.0 — Prontuário Clínico
+## Novidades da v1.4.0 — Inteligência Nutricional Brasileira
 
-- anamnese completa e versionada, sem sobrescrever o histórico;
-- avaliações antropométricas com comparação longitudinal;
-- IMC e relação cintura–quadril calculados no servidor;
-- evolução, metas clínicas e observações com autoria e data;
-- consentimentos específicos registrados como eventos rastreáveis;
-- anexos clínicos protegidos, com validação de tipo, tamanho e assinatura;
-- relatório profissional pronto para impressão ou PDF;
-- interface responsiva dedicada ao prontuário;
-- blueprint clínico e migration v4 compatível com instalações existentes.
+- biblioteca original de ícones SVG, criada para a identidade Nexus Nutra;
+- nova logomarca transparente aplicada à interface, relatórios e documentação;
+- alimentos personalizados, exclusivos para cada nutricionista;
+- receitas com ingredientes, rendimento e cálculo nutricional automático no servidor;
+- análise de dez indicadores: energia, macronutrientes, fibras, cálcio, ferro, sódio, gordura saturada e açúcares;
+- alertas de alergênicos e conflitos com alergias, intolerâncias e restrições da anamnese;
+- planos alimentares revisionados e numerados sem perder o histórico;
+- espaço “Inteligência nutricional” para gerir preparações e catálogo profissional;
+- migration v5 compatível com instalações existentes e 21 cenários automatizados.
 
 ## Funcionalidades
 
@@ -44,9 +46,10 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - prontuário clínico com anamnese versionada, antropometria e linha do tempo;
 - comparação entre avaliações, consentimentos e anexos com acesso restrito;
 - relatório clínico profissional para impressão ou PDF;
-- criação rápida de planos por refeições;
-- catálogo brasileiro pesquisável durante a prescrição;
-- cálculo automático de calorias, proteínas, carboidratos, gorduras, fibras, cálcio e ferro;
+- criação rápida de planos por refeições, com versões e histórico de revisões;
+- catálogo brasileiro pesquisável, alimentos personalizados e receitas calculadas;
+- cálculo automático de calorias, proteínas, carboidratos, gorduras, fibras, cálcio, ferro, sódio, gordura saturada e açúcares;
+- alertas clínicos de alergênicos e restrições antes da publicação;
 - definição de metas e visualização de adequação nutricional;
 - reutilização de planos como modelo e sugestões de alternativas;
 - impressão profissional do plano em PDF pelo navegador;
@@ -67,6 +70,7 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 ### Experiência e engenharia
 
 - interface própria, responsiva e acessível em português do Brasil;
+- biblioteca autoral de ícones SVG, leve, consistente e sem dependências externas;
 - senhas protegidas com o mecanismo seguro do Werkzeug;
 - proteção CSRF em todas as operações de escrita;
 - cookies de sessão `HttpOnly` e `SameSite=Lax`;
@@ -156,12 +160,17 @@ Nexus-Nutra/
 │   ├── clinical.py
 │   ├── db.py
 │   ├── mailer.py
+│   ├── nutrition.py
 │   └── routes.py
 ├── static/
 │   ├── css/app.css
-│   ├── img/nexus-nutra-logo.jpeg
+│   ├── img/
+│   │   ├── nexus-icons.svg
+│   │   └── nexus-nutra-logo-transparent.png
 │   └── js/app.js
 ├── templates/
+│   ├── _icons.html
+│   └── nutrition_workspace.html
 ├── tests/
 ├── docs/
 │   └── BACKUP_RESTORE.md
@@ -192,7 +201,7 @@ flowchart LR
 | v1.2.0 | Agenda Segura ✅ | disponibilidade, conflitos, estados, ICS, auditoria e sessões |
 | v1.2.1 | Identidade Segura ✅ | recuperação de senha, verificação de e-mail e SMTP |
 | v1.3.0 | Prontuário Clínico ✅ | anamnese, antropometria, evolução, anexos e consentimentos |
-| v1.4.0 | Inteligência Nutricional | receitas, catálogo ampliado, nutrientes e relatórios |
+| v1.4.0 | Inteligência Nutricional ✅ | receitas, alimentos personalizados, alertas, nutrientes e planos versionados |
 | v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |
 | v1.6.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |
 | v1.7.0 | Integrações | API, calendários, videoconferência, webhooks e wearables |

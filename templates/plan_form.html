@@ -3,8 +3,8 @@
 {% block content %}
 <header class="page-header with-action">
   <div>
-    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Prontuário de {{ patient.name }}</a>
-    <span class="eyebrow">PRESCRIÇÃO NUTRICIONAL · V1.1</span>
+    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">{{ icon('arrow-left') }} Prontuário de {{ patient.name }}</a>
+    <span class="eyebrow">PRESCRIÇÃO NUTRICIONAL · V1.4</span>
     <h1>{{ 'Reutilizar plano alimentar' if model else 'Novo plano alimentar' }}</h1>
     <p>Selecione alimentos do catálogo brasileiro e informe a quantidade para calcular os nutrientes.</p>
   </div>
@@ -12,12 +12,13 @@
 </header>
 
 {% if model %}
-<div class="model-notice"><span>↻</span><div><strong>Modelo carregado: {{ model.title }}</strong><p>Revise as quantidades e metas antes de publicar. O plano original será preservado.</p></div></div>
+<div class="model-notice"><span>{{ icon('refresh') }}</span><div><strong>Modelo carregado: {{ model.title }}</strong><p>Revise as quantidades e metas antes de publicar. O plano original será preservado.</p></div></div>
 {% endif %}
 
 <form method="post" data-plan-form>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <script type="application/json" data-food-catalog>{{ foods_payload|tojson }}</script>
+  <script type="application/json" data-clinical-context>{{ {'allergies': clinical_profile.allergies if clinical_profile else '', 'intolerances': clinical_profile.intolerances if clinical_profile else '', 'restrictions': clinical_profile.restrictions if clinical_profile else ''}|tojson }}</script>
   <datalist id="food-options">{% for food in foods_catalog %}<option value="{{ food.name }}">{{ food.category }} · {{ food.household_measure }}</option>{% endfor %}</datalist>
   <div class="content-grid plan-layout">
     <div>
@@ -29,24 +30,24 @@
           <label class="span-2">Orientações gerais<textarea name="guidance" rows="3" placeholder="Hidratação, substituições, horários e outras orientações...">{{ model.guidance if model else '' }}</textarea></label>
         </div>
         <div class="target-grid">
-          {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidratos', 'g'), ('fat', 'Gorduras', 'g'), ('fiber', 'Fibras', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg')] %}
+          {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidratos', 'g'), ('fat', 'Gorduras', 'g'), ('fiber', 'Fibras', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg'), ('sodium', 'Sódio', 'mg'), ('saturated_fat', 'Gordura saturada', 'g'), ('sugars', 'Açúcares', 'g')] %}
           <label>{{ label }} <small>{{ unit }}</small><input type="number" min="0" step="0.1" name="target_{{ field }}" value="{{ model['target_' ~ field] if model and model['target_' ~ field] else '' }}" placeholder="Meta"></label>
           {% endfor %}
         </div>
       </section>
 
       <section class="panel meal-builder">
-        <div class="panel-header"><div><h2>Refeições e alimentos</h2><p>Dados por 100 g provenientes do catálogo TACO; o cálculo usa a quantidade informada.</p></div><button class="button button-secondary button-sm" type="button" data-add-food>+ Adicionar alimento</button></div>
+        <div class="panel-header"><div><h2>Refeições e alimentos</h2><p>Dados por 100 g provenientes do catálogo TACO; o cálculo usa a quantidade informada.</p></div><button class="button button-secondary button-sm" type="button" data-add-food>{{ icon('plus') }} Adicionar alimento</button></div>
         <div class="food-items" data-food-items>
           {% set initial_items = model_items if model_items else [none] %}
           {% for item in initial_items %}
           <article class="food-row" data-food-row>
-            <div class="food-row-head"><strong>Item <span data-row-number>{{ loop.index }}</span></strong><span class="catalog-status" data-catalog-status>{{ 'Catálogo TACO' if item and item.food_id else 'Preenchimento manual' }}</span><button type="button" data-remove-food aria-label="Remover alimento">×</button></div>
+            <div class="food-row-head"><strong>Item <span data-row-number>{{ loop.index }}</span></strong><span class="catalog-status" data-catalog-status>{{ 'Catálogo TACO' if item and item.food_id else 'Preenchimento manual' }}</span><button type="button" data-remove-food aria-label="Remover alimento">{{ icon('close') }}</button></div>
             <div class="form-grid food-grid food-grid-v11">
               <label>Refeição<select name="meal_name[]">{% for meal in ['Café da manhã', 'Lanche da manhã', 'Almoço', 'Lanche da tarde', 'Jantar', 'Ceia'] %}<option {{ 'selected' if item and item.meal_name == meal }}>{{ meal }}</option>{% endfor %}</select></label>
               <label class="food-search-field">Buscar alimento<input name="food_name[]" list="food-options" required value="{{ item.food_name if item else '' }}" placeholder="Digite para pesquisar..." data-food-search autocomplete="off"><input type="hidden" name="food_id[]" value="{{ item.food_id if item and item.food_id else '' }}" data-food-id></label>
               <label>Quantidade <small>gramas/ml</small><input type="number" name="amount_g[]" min="0.1" step="0.1" value="{{ item.amount_g if item and item.amount_g else '' }}" placeholder="Ex.: 100" data-amount-g><input type="hidden" name="quantity[]" value="{{ item.quantity if item else '' }}"></label>
-              {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidrato', 'g'), ('fat', 'Gordura', 'g'), ('fiber', 'Fibra', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg')] %}
+              {% for field, label, unit in [('calories', 'Energia', 'kcal'), ('protein', 'Proteína', 'g'), ('carbs', 'Carboidrato', 'g'), ('fat', 'Gordura', 'g'), ('fiber', 'Fibra', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg'), ('sodium', 'Sódio', 'mg'), ('saturated_fat', 'Gordura saturada', 'g'), ('sugars', 'Açúcares', 'g')] %}
               <label>{{ label }} <small>{{ unit }}</small><input type="number" name="{{ field }}[]" min="0" step="0.1" value="{{ item[field] if item else 0 }}" data-nutrient="{{ field }}"></label>
               {% endfor %}
             </div>
@@ -55,6 +56,7 @@
           {% endfor %}
         </div>
       </section>
+      <section class="plan-safety-panel hidden" data-plan-alerts aria-live="polite"><span>{{ icon('alert') }}</span><div><strong>Atenção clínica</strong><p data-plan-alert-text></p></div></section>
     </div>
 
     <aside class="panel totals-panel">
@@ -67,6 +69,9 @@
         <div><span>Fibras</span><b><em data-total="fiber">0</em> g</b></div>
         <div><span>Cálcio</span><b><em data-total="calcium">0</em> mg</b></div>
         <div><span>Ferro</span><b><em data-total="iron">0</em> mg</b></div>
+        <div><span>Sódio</span><b><em data-total="sodium">0</em> mg</b></div>
+        <div><span>Gordura saturada</span><b><em data-total="saturated_fat">0</em> g</b></div>
+        <div><span>Açúcares</span><b><em data-total="sugars">0</em> g</b></div>
       </div>
       <p class="clinical-note">Valores de referência apoiam a prescrição e devem ser conferidos pelo nutricionista responsável.</p>
       <button class="button button-primary button-block" type="submit">Publicar plano alimentar</button>

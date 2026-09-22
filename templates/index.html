@@ -7,10 +7,10 @@
     <h1>Mais tempo para cuidar.<br><em>Mais clareza para evoluir.</em></h1>
     <p>Consultório, plano alimentar e acompanhamento do paciente em uma experiência simples, humana e conectada.</p>
     <div class="hero-actions">
-      <a class="button button-primary" href="{{ url_for('auth.register') }}">Começar agora <span>→</span></a>
+      <a class="button button-primary" href="{{ url_for('auth.register') }}">Começar agora {{ icon('arrow-right') }}</a>
       <a class="button button-secondary" href="#recursos">Conhecer a plataforma</a>
     </div>
-    <div class="trust-row"><span>✓ Dados organizados</span><span>✓ Experiência responsiva</span><span>✓ Feito para o Brasil</span></div>
+    <div class="trust-row"><span>{{ icon('check') }} Dados organizados</span><span>{{ icon('check') }} Experiência responsiva</span><span>{{ icon('check') }} Feito para o Brasil</span></div>
   </div>
   <div class="hero-visual" aria-label="Prévia do painel Nexus Nutra">
     <div class="preview-window">
@@ -18,13 +18,13 @@
       <div class="preview-body">
         <div class="preview-sidebar"></div>
         <div class="preview-content">
-          <div class="preview-heading"><div><small>Bom dia, Dra. Marina</small><b>Visão geral</b></div><button>+ Novo paciente</button></div>
+          <div class="preview-heading"><div><small>Bom dia, Dra. Marina</small><b>Visão geral</b></div><button>{{ icon('plus') }} Novo paciente</button></div>
           <div class="preview-stats"><span><small>Pacientes ativos</small><b>48</b></span><span><small>Consultas hoje</small><b>06</b></span><span><small>Adesão média</small><b>87%</b></span></div>
           <div class="preview-chart"><b>Evolução dos pacientes</b><div class="chart-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
         </div>
       </div>
     </div>
-    <div class="floating-card"><span class="floating-icon">✓</span><div><strong>Plano publicado</strong><small>O paciente já foi notificado</small></div></div>
+    <div class="floating-card"><span class="floating-icon">{{ icon('check') }}</span><div><strong>Plano publicado</strong><small>O paciente já foi notificado</small></div></div>
   </div>
 </section>
 
@@ -33,12 +33,12 @@
 <section class="section" id="recursos">
   <div class="section-heading"><span class="eyebrow">TUDO EM UM SÓ LUGAR</span><h2>Do primeiro contato ao acompanhamento diário</h2><p>Fluxos essenciais reunidos para reduzir tarefas repetitivas e aproximar profissional e paciente.</p></div>
   <div class="feature-grid">
-    <article class="feature-card featured"><span class="feature-icon">⌁</span><h3>Planos alimentares inteligentes</h3><p>Monte refeições com cálculo automático de calorias, macros e micronutrientes.</p><span class="feature-tag">Cálculo em tempo real</span></article>
-    <article class="feature-card"><span class="feature-icon">♙</span><h3>Gestão de pacientes</h3><p>Histórico, objetivos, peso, adesão e plano atual em uma visão clínica organizada.</p></article>
-    <article class="feature-card"><span class="feature-icon">↗</span><h3>Evolução visual</h3><p>Gráficos claros transformam registros em conversas mais objetivas nas consultas.</p></article>
-    <article class="feature-card"><span class="feature-icon">◌</span><h3>Canal de mensagens</h3><p>Dúvidas e orientações permanecem junto ao acompanhamento, sem perder contexto.</p></article>
-    <article class="feature-card"><span class="feature-icon">□</span><h3>Agenda e consulta online</h3><p>Organize atendimentos presenciais ou remotos e centralize o link da consulta.</p></article>
-    <article class="feature-card"><span class="feature-icon">◫</span><h3>Diário alimentar</h3><p>O paciente registra refeições, fome e adesão para um retorno mais fiel.</p></article>
+    <article class="feature-card featured"><span class="feature-icon">{{ icon('spark') }}</span><h3>Planos alimentares inteligentes</h3><p>Monte refeições com cálculo automático de calorias, macros e micronutrientes.</p><span class="feature-tag">Cálculo em tempo real</span></article>
+    <article class="feature-card"><span class="feature-icon">{{ icon('patients') }}</span><h3>Gestão de pacientes</h3><p>Histórico, objetivos, peso, adesão e plano atual em uma visão clínica organizada.</p></article>
+    <article class="feature-card"><span class="feature-icon">{{ icon('trend') }}</span><h3>Evolução visual</h3><p>Gráficos claros transformam registros em conversas mais objetivas nas consultas.</p></article>
+    <article class="feature-card"><span class="feature-icon">{{ icon('message') }}</span><h3>Canal de mensagens</h3><p>Dúvidas e orientações permanecem junto ao acompanhamento, sem perder contexto.</p></article>
+    <article class="feature-card"><span class="feature-icon">{{ icon('video') }}</span><h3>Agenda e consulta online</h3><p>Organize atendimentos presenciais ou remotos e centralize o link da consulta.</p></article>
+    <article class="feature-card"><span class="feature-icon">{{ icon('diary') }}</span><h3>Diário alimentar</h3><p>O paciente registra refeições, fome e adesão para um retorno mais fiel.</p></article>
   </div>
 </section>
 
@@ -50,5 +50,5 @@
   </div>
 </section>
 
-<section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('auth.register') }}">Criar minha conta →</a></section>
+<section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('auth.register') }}">Criar minha conta {{ icon('arrow-right') }}</a></section>
 {% endblock %}

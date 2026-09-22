@@ -282,11 +282,84 @@ def _migration_004_clinical_record(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_005_nutrition_intelligence(db: sqlite3.Connection) -> None:
+    """Receitas, alimentos próprios e nutrientes ampliados da v1.4.0."""
+    for table in ("foods", "meal_items"):
+        for column in (
+            "sodium REAL NOT NULL DEFAULT 0",
+            "saturated_fat REAL NOT NULL DEFAULT 0",
+            "sugars REAL NOT NULL DEFAULT 0",
+        ):
+            _add_column(db, table, column)
+    for prefix in ("", "target_"):
+        for name in ("sodium", "saturated_fat", "sugars"):
+            _add_column(db, "meal_plans", f"{prefix}{name} REAL NOT NULL DEFAULT 0")
+    for column in (
+        "nutritionist_id INTEGER REFERENCES users(id) ON DELETE CASCADE",
+        "allergens TEXT",
+        "recipe_id INTEGER REFERENCES recipes(id) ON DELETE SET NULL",
+        "created_at TEXT",
+    ):
+        _add_column(db, "foods", column)
+    _add_column(db, "meal_plans", "revision_of INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL")
+    _add_column(db, "meal_plans", "version_number INTEGER NOT NULL DEFAULT 1")
+
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS recipes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'Receitas',
+            yield_g REAL NOT NULL CHECK (yield_g > 0),
+            servings INTEGER NOT NULL CHECK (servings > 0),
+            instructions TEXT,
+            allergens TEXT,
+            calories REAL NOT NULL DEFAULT 0,
+            protein REAL NOT NULL DEFAULT 0,
+            carbs REAL NOT NULL DEFAULT 0,
+            fat REAL NOT NULL DEFAULT 0,
+            fiber REAL NOT NULL DEFAULT 0,
+            calcium REAL NOT NULL DEFAULT 0,
+            iron REAL NOT NULL DEFAULT 0,
+            sodium REAL NOT NULL DEFAULT 0,
+            saturated_fat REAL NOT NULL DEFAULT 0,
+            sugars REAL NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (nutritionist_id, name)
+        );
+
+        CREATE TABLE IF NOT EXISTS recipe_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipe_id INTEGER NOT NULL,
+            food_id INTEGER NOT NULL,
+            amount_g REAL NOT NULL CHECK (amount_g > 0),
+            FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+            FOREIGN KEY (food_id) REFERENCES foods(id) ON DELETE RESTRICT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_foods_owner_active
+            ON foods(nutritionist_id, active, category);
+        CREATE INDEX IF NOT EXISTS idx_recipes_owner_name
+            ON recipes(nutritionist_id, name);
+        CREATE INDEX IF NOT EXISTS idx_recipe_items_recipe
+            ON recipe_items(recipe_id);
+        CREATE INDEX IF NOT EXISTS idx_meal_plans_revision
+            ON meal_plans(revision_of, version_number);
+        """
+    )
+    db.execute("UPDATE foods SET allergens = 'glúten' WHERE name = 'Pão francês'")
+    db.execute("UPDATE foods SET allergens = 'leite, lactose' WHERE category = 'Leites e derivados'")
+    db.execute("UPDATE foods SET allergens = 'ovo' WHERE name = 'Ovo de galinha, cozido'")
+
+
 MIGRATIONS = (
     (1, "v1.1.0_catalogo_inteligente", _migration_001_catalog),
     (2, "v1.2.0_agenda_segura", _migration_002_secure_agenda),
     (3, "v1.2.1_identidade_segura", _migration_003_secure_identity),
     (4, "v1.3.0_prontuario_clinico", _migration_004_clinical_record),
+    (5, "v1.4.0_inteligencia_nutricional", _migration_005_nutrition_intelligence),
 )
 
 

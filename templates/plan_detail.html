@@ -3,14 +3,14 @@
 {% block content %}
 <header class="page-header with-action">
   <div>
-    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=plan.patient_id) if g.user.role == 'nutritionist' else url_for('main.dashboard') }}">← Voltar</a>
-    <span class="eyebrow">PLANO ALIMENTAR · V1.1</span>
+    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=plan.patient_id) if g.user.role == 'nutritionist' else url_for('main.dashboard') }}">{{ icon('arrow-left') }} Voltar</a>
+    <span class="eyebrow">PLANO ALIMENTAR · VERSÃO {{ plan.version_number or 1 }}</span>
     <h1>{{ plan.title }}</h1>
     <p>Para {{ plan.patient_name }} · por {{ plan.nutritionist_name }} · {{ plan.created_at[:10]|brdate }}</p>
   </div>
   <div class="header-actions">
     <a class="button button-secondary" href="{{ url_for('main.print_plan', plan_id=plan.id) }}" target="_blank">Imprimir / PDF</a>
-    {% if g.user.role == 'nutritionist' %}<a class="button button-primary" href="{{ url_for('main.new_plan', patient_id=plan.patient_id, modelo=plan.id) }}">↻ Reutilizar plano</a>{% endif %}
+    {% if g.user.role == 'nutritionist' %}<a class="button button-primary" href="{{ url_for('main.new_plan', patient_id=plan.patient_id, modelo=plan.id) }}">{{ icon('refresh') }} Reutilizar plano</a>{% endif %}
   </div>
 </header>
 
@@ -23,6 +23,8 @@
     <span><i class="fiber"></i><small>Fibras</small><b>{{ plan.fiber|round(1) }} g</b>{% if progress.fiber %}<em>{{ progress.fiber }}% da meta</em>{% endif %}</span>
   </div>
 </section>
+
+{% if alerts %}<section class="plan-safety-panel visible"><span>{{ icon('alert') }}</span><div><strong>Alerta de alergia ou restrição</strong><p>{% for alert in alerts %}{{ alert.food }} contém {{ alert.allergen }}{{ '; ' if not loop.last }}{% endfor %}. Revise a adequação antes de orientar o paciente.</p></div></section>{% endif %}
 
 {% if plan.objective or plan.guidance %}<section class="panel guidance-panel"><div><span class="feature-icon">◎</span></div><div><h2>{{ plan.objective or 'Orientações do plano' }}</h2><p>{{ plan.guidance or 'Siga as refeições e substituições orientadas pelo seu nutricionista.' }}</p></div></section>{% endif %}
 
@@ -49,7 +51,7 @@
 <section class="panel micronutrient-panel">
   <div class="panel-header"><div><h2>Micronutrientes e fibras</h2><p>Totais calculados para este plano.</p></div><span class="badge badge-neutral">Base TACO</span></div>
   <div class="micro-grid">
-    {% for field, label, unit in [('fiber', 'Fibras', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg')] %}
+    {% for field, label, unit in [('fiber', 'Fibras', 'g'), ('calcium', 'Cálcio', 'mg'), ('iron', 'Ferro', 'mg'), ('sodium', 'Sódio', 'mg'), ('saturated_fat', 'Gordura saturada', 'g'), ('sugars', 'Açúcares', 'g')] %}
     <div><span>{{ label }}</span><b>{{ plan[field]|round(1) }} {{ unit }}</b>{% if progress[field] %}<small>{{ progress[field] }}% da meta definida</small><span class="adequacy-track"><i style="width: {{ [progress[field], 100]|min }}%"></i></span>{% endif %}</div>
     {% endfor %}
   </div>

@@ -12,6 +12,7 @@ from flask import Flask, render_template
 from .auth import bp as auth_bp
 from .clinical import bp as clinical_bp
 from .db import close_db, init_db
+from .nutrition import bp as nutrition_bp
 from .routes import bp
 
 
@@ -79,6 +80,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(clinical_bp)
+    app.register_blueprint(nutrition_bp)
 
     with app.app_context():
         init_db()

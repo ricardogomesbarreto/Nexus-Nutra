@@ -1,3 +1,4 @@
+{% from '_icons.html' import icon %}
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -17,24 +18,25 @@
   {% if g.user %}
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="{{ url_for('main.dashboard') }}" aria-label="Nexus Nutra — início">
-        <img src="{{ url_for('static', filename='img/nexus-nutra-logo.jpeg') }}" alt="Nexus Nutra">
+        <img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra">
       </a>
       <nav class="side-nav" aria-label="Navegação principal">
-        <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><span>⌂</span> Visão geral</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><span>{{ icon('dashboard') }}</span> Visão geral</a>
         {% if g.user.role == 'nutritionist' %}
-          <a class="nav-link {{ 'active' if request.endpoint in ['main.patients', 'main.patient_detail', 'main.new_patient', 'main.new_plan', 'main.plan_detail'] or request.blueprint == 'clinical' }}" href="{{ url_for('main.patients') }}"><span>♙</span> Pacientes</a>
-          <a class="nav-link {{ 'active' if request.endpoint == 'main.food_catalog' }}" href="{{ url_for('main.food_catalog') }}"><span>⌕</span> Catálogo alimentar</a>
+          <a class="nav-link {{ 'active' if request.endpoint in ['main.patients', 'main.patient_detail', 'main.new_patient', 'main.new_plan', 'main.plan_detail'] or request.blueprint == 'clinical' }}" href="{{ url_for('main.patients') }}"><span>{{ icon('patients') }}</span> Pacientes</a>
+          <a class="nav-link {{ 'active' if request.endpoint == 'main.food_catalog' }}" href="{{ url_for('main.food_catalog') }}"><span>{{ icon('food') }}</span> Catálogo alimentar</a>
+          <a class="nav-link {{ 'active' if request.blueprint == 'nutrition' }}" href="{{ url_for('nutrition.workspace') }}"><span>{{ icon('spark') }}</span> Inteligência nutricional</a>
         {% else %}
-          <a class="nav-link {{ 'active' if request.endpoint == 'main.diary' }}" href="{{ url_for('main.diary') }}"><span>◫</span> Diário alimentar</a>
-          <a class="nav-link {{ 'active' if request.endpoint == 'main.progress' }}" href="{{ url_for('main.progress') }}"><span>↗</span> Evolução</a>
+          <a class="nav-link {{ 'active' if request.endpoint == 'main.diary' }}" href="{{ url_for('main.diary') }}"><span>{{ icon('diary') }}</span> Diário alimentar</a>
+          <a class="nav-link {{ 'active' if request.endpoint == 'main.progress' }}" href="{{ url_for('main.progress') }}"><span>{{ icon('trend') }}</span> Evolução</a>
         {% endif %}
-        <a class="nav-link {{ 'active' if request.endpoint == 'main.agenda' }}" href="{{ url_for('main.agenda') }}"><span>□</span> Agenda</a>
-        <a class="nav-link {{ 'active' if request.endpoint == 'main.chat' }}" href="{{ url_for('main.chat') }}"><span>◌</span> Mensagens</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'main.agenda' }}" href="{{ url_for('main.agenda') }}"><span>{{ icon('calendar') }}</span> Agenda</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'main.chat' }}" href="{{ url_for('main.chat') }}"><span>{{ icon('message') }}</span> Mensagens</a>
       </nav>
       <div class="sidebar-profile">
         <div class="avatar">{{ g.user.name[:1]|upper }}</div>
         <div class="profile-copy"><strong>{{ g.user.name }}</strong><small>{{ 'Nutricionista' if g.user.role == 'nutritionist' else 'Paciente' }}</small></div>
-        <a href="{{ url_for('main.profile') }}" aria-label="Abrir perfil">›</a>
+        <a href="{{ url_for('main.profile') }}" aria-label="Abrir perfil">{{ icon('chevron-right') }}</a>
       </div>
     </aside>
     <div class="app-area">
@@ -42,10 +44,10 @@
         <button class="menu-toggle" type="button" data-menu-toggle aria-label="Abrir menu">☰</button>
         <div class="topbar-title"><span class="status-dot"></span> Atendimento conectado</div>
         <div class="topbar-actions">
-          <a class="icon-button" href="{{ url_for('main.chat') }}" aria-label="Mensagens">◌</a>
+          <a class="icon-button" href="{{ url_for('main.chat') }}" aria-label="Mensagens">{{ icon('message') }}</a>
           <form method="post" action="{{ url_for('auth.logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="button button-ghost button-sm" type="submit">Sair</button>
+            <button class="button button-ghost button-sm" type="submit">{{ icon('logout') }} Sair</button>
           </form>
         </div>
       </header>
@@ -56,7 +58,7 @@
     </div>
   {% else %}
     <header class="public-header">
-      <a class="brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='img/nexus-nutra-logo.jpeg') }}" alt="Nexus Nutra"></a>
+      <a class="brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra"></a>
       <nav aria-label="Navegação pública">
         <a href="{{ url_for('main.index') }}#recursos">Recursos</a>
         <a href="{{ url_for('main.index') }}#para-quem">Para quem</a>
@@ -69,7 +71,7 @@
       {% block public_content %}{% endblock %}
     </main>
     <footer class="public-footer">
-      <div><img src="{{ url_for('static', filename='img/nexus-nutra-logo.jpeg') }}" alt="Nexus Nutra"><p>Nutrição conectada, cuidado que evolui.</p></div>
+      <div><img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra"><p>Nutrição conectada, cuidado que evolui.</p></div>
       <p>© 2026 Nexus Nutra. Tecnologia de apoio — decisões clínicas pertencem ao profissional habilitado.</p>
     </footer>
   {% endif %}

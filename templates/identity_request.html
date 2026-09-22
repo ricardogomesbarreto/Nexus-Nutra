@@ -3,12 +3,12 @@
 {% block title %}{{ 'Recuperar senha' if is_reset else 'Confirmar e-mail' }} — Nexus Nutra{% endblock %}
 {% block public_content %}
 <section class="auth-layout identity-layout">
-  <div class="auth-pitch"><span class="eyebrow">IDENTIDADE SEGURA</span><h1>{{ 'Recupere seu acesso com segurança.' if is_reset else 'Confirme seu canal de acesso.' }}</h1><p>{{ 'O link é individual, expira em 30 minutos e só pode ser utilizado uma vez.' if is_reset else 'Enviaremos um novo link de confirmação, válido por 24 horas e de uso único.' }}</p><div class="auth-benefits"><span>✓ Resposta sem exposição de contas</span><span>✓ Token armazenado somente como hash</span><span>✓ Sessões antigas revogadas após troca de senha</span></div></div>
+  <div class="auth-pitch"><span class="eyebrow">IDENTIDADE SEGURA</span><h1>{{ 'Recupere seu acesso com segurança.' if is_reset else 'Confirme seu canal de acesso.' }}</h1><p>{{ 'O link é individual, expira em 30 minutos e só pode ser utilizado uma vez.' if is_reset else 'Enviaremos um novo link de confirmação, válido por 24 horas e de uso único.' }}</p><div class="auth-benefits"><span>{{ icon('check') }} Resposta sem exposição de contas</span><span>{{ icon('check') }} Token armazenado somente como hash</span><span>{{ icon('check') }} Sessões antigas revogadas após troca de senha</span></div></div>
   <div class="auth-card identity-card">
-    <div class="identity-icon">{{ '↻' if is_reset else '✓' }}</div>
+    <div class="identity-icon">{{ icon('refresh' if is_reset else 'privacy') }}</div>
     <div class="auth-heading"><h2>{{ 'Recuperar senha' if is_reset else 'Reenviar confirmação' }}</h2><p>Informe o e-mail cadastrado na plataforma.</p></div>
     <form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>E-mail<input type="email" name="email" value="{{ initial_email }}" autocomplete="email" required autofocus placeholder="voce@exemplo.com"></label><button class="button button-primary button-block" type="submit">{{ 'Enviar instruções' if is_reset else 'Enviar novo link' }}</button></form>
-    <p class="auth-switch"><a href="{{ url_for('auth.login') }}">← Voltar para o login</a></p>
+    <p class="auth-switch"><a href="{{ url_for('auth.login') }}">{{ icon('arrow-left') }} Voltar para o login</a></p>
   </div>
 </section>
 {% endblock %}

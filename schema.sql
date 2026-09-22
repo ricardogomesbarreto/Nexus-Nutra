@@ -45,6 +45,9 @@ CREATE TABLE IF NOT EXISTS meal_plans (
     fiber REAL NOT NULL DEFAULT 0,
     calcium REAL NOT NULL DEFAULT 0,
     iron REAL NOT NULL DEFAULT 0,
+    sodium REAL NOT NULL DEFAULT 0,
+    saturated_fat REAL NOT NULL DEFAULT 0,
+    sugars REAL NOT NULL DEFAULT 0,
     target_calories REAL NOT NULL DEFAULT 0,
     target_protein REAL NOT NULL DEFAULT 0,
     target_carbs REAL NOT NULL DEFAULT 0,
@@ -52,10 +55,16 @@ CREATE TABLE IF NOT EXISTS meal_plans (
     target_fiber REAL NOT NULL DEFAULT 0,
     target_calcium REAL NOT NULL DEFAULT 0,
     target_iron REAL NOT NULL DEFAULT 0,
+    target_sodium REAL NOT NULL DEFAULT 0,
+    target_saturated_fat REAL NOT NULL DEFAULT 0,
+    target_sugars REAL NOT NULL DEFAULT 0,
+    revision_of INTEGER,
+    version_number INTEGER NOT NULL DEFAULT 1,
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (revision_of) REFERENCES meal_plans(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS foods (
@@ -70,8 +79,17 @@ CREATE TABLE IF NOT EXISTS foods (
     fiber REAL NOT NULL DEFAULT 0,
     calcium REAL NOT NULL DEFAULT 0,
     iron REAL NOT NULL DEFAULT 0,
+    sodium REAL NOT NULL DEFAULT 0,
+    saturated_fat REAL NOT NULL DEFAULT 0,
+    sugars REAL NOT NULL DEFAULT 0,
+    nutritionist_id INTEGER,
+    allergens TEXT,
+    recipe_id INTEGER,
+    created_at TEXT,
     source TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
+    active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS meal_items (
@@ -87,6 +105,9 @@ CREATE TABLE IF NOT EXISTS meal_items (
     fiber REAL NOT NULL DEFAULT 0,
     calcium REAL NOT NULL DEFAULT 0,
     iron REAL NOT NULL DEFAULT 0,
+    sodium REAL NOT NULL DEFAULT 0,
+    saturated_fat REAL NOT NULL DEFAULT 0,
+    sugars REAL NOT NULL DEFAULT 0,
     food_id INTEGER,
     amount_g REAL,
     FOREIGN KEY (plan_id) REFERENCES meal_plans(id) ON DELETE CASCADE,
@@ -299,6 +320,39 @@ CREATE TABLE IF NOT EXISTS clinical_attachments (
     FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nutritionist_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'Receitas',
+    yield_g REAL NOT NULL CHECK (yield_g > 0),
+    servings INTEGER NOT NULL CHECK (servings > 0),
+    instructions TEXT,
+    allergens TEXT,
+    calories REAL NOT NULL DEFAULT 0,
+    protein REAL NOT NULL DEFAULT 0,
+    carbs REAL NOT NULL DEFAULT 0,
+    fat REAL NOT NULL DEFAULT 0,
+    fiber REAL NOT NULL DEFAULT 0,
+    calcium REAL NOT NULL DEFAULT 0,
+    iron REAL NOT NULL DEFAULT 0,
+    sodium REAL NOT NULL DEFAULT 0,
+    saturated_fat REAL NOT NULL DEFAULT 0,
+    sugars REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (nutritionist_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS recipe_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER NOT NULL,
+    food_id INTEGER NOT NULL,
+    amount_g REAL NOT NULL CHECK (amount_g > 0),
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (food_id) REFERENCES foods(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_plans_patient ON meal_plans(patient_id, active);

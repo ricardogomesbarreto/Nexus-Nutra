@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}Minha jornada — Nexus Nutra{% endblock %}
 {% block content %}
-<header class="page-header with-action"><div><span class="eyebrow">MINHA JORNADA</span><h1>Olá, {{ g.user.name.split()[0] }}.</h1><p>Um passo de cada vez. Veja seu plano e registre seu dia.</p></div><a class="button button-primary" href="{{ url_for('main.diary') }}">+ Registrar refeição</a></header>
+<header class="page-header with-action"><div><span class="eyebrow">MINHA JORNADA</span><h1>Olá, {{ g.user.name.split()[0] }}.</h1><p>Um passo de cada vez. Veja seu plano e registre seu dia.</p></div><a class="button button-primary" href="{{ url_for('main.diary') }}">{{ icon('plus') }} Registrar refeição</a></header>
 
 <section class="patient-welcome">
-  <div><span class="eyebrow light">FOCO DE HOJE</span><h2>{{ g.user.goal or 'Construa uma rotina possível e consistente.' }}</h2><p>Use o diário para compartilhar como foi seu dia com o nutricionista.</p><div class="welcome-actions"><a class="button button-light" href="{{ url_for('main.diary') }}">Abrir diário</a>{% if plan %}<a href="{{ url_for('main.plan_detail', plan_id=plan.id) }}">Ver plano alimentar →</a>{% endif %}</div></div><div class="wellness-orbit"><span>🥗</span></div>
+  <div><span class="eyebrow light">FOCO DE HOJE</span><h2>{{ g.user.goal or 'Construa uma rotina possível e consistente.' }}</h2><p>Use o diário para compartilhar como foi seu dia com o nutricionista.</p><div class="welcome-actions"><a class="button button-light" href="{{ url_for('main.diary') }}">Abrir diário</a>{% if plan %}<a href="{{ url_for('main.plan_detail', plan_id=plan.id) }}">Ver plano alimentar {{ icon('arrow-right') }}</a>{% endif %}</div></div><div class="wellness-orbit"><span>{{ icon('food') }}</span></div>
 </section>
 
 <section class="stat-grid patient-stats">
-  <article class="stat-card"><span class="stat-icon green">◫</span><div><small>Registros hoje</small><strong>{{ diary_today }}</strong><a href="{{ url_for('main.diary') }}">Continuar diário →</a></div></article>
-  <article class="stat-card"><span class="stat-icon blue">↗</span><div><small>Peso atual</small><strong>{{ ('%.1f'|format(weights[-1].weight)) if weights else '—' }} <em>{{ 'kg' if weights else '' }}</em></strong><a href="{{ url_for('main.progress') }}">Atualizar →</a></div></article>
-  <article class="stat-card"><span class="stat-icon purple">□</span><div><small>Próximas consultas</small><strong>{{ appointments|length }}</strong><a href="{{ url_for('main.agenda') }}">Ver agenda →</a></div></article>
-  <article class="stat-card"><span class="stat-icon orange">⌁</span><div><small>Plano alimentar</small><strong class="text-value">{{ 'Ativo' if plan else 'Pendente' }}</strong>{% if plan %}<a href="{{ url_for('main.plan_detail', plan_id=plan.id) }}">Consultar →</a>{% else %}<span class="muted-link">Aguarde seu nutricionista</span>{% endif %}</div></article>
+  <article class="stat-card"><span class="stat-icon green">{{ icon('diary') }}</span><div><small>Registros hoje</small><strong>{{ diary_today }}</strong><a href="{{ url_for('main.diary') }}">Continuar diário {{ icon('arrow-right') }}</a></div></article>
+  <article class="stat-card"><span class="stat-icon blue">{{ icon('weight') }}</span><div><small>Peso atual</small><strong>{{ ('%.1f'|format(weights[-1].weight)) if weights else '—' }} <em>{{ 'kg' if weights else '' }}</em></strong><a href="{{ url_for('main.progress') }}">Atualizar {{ icon('arrow-right') }}</a></div></article>
+  <article class="stat-card"><span class="stat-icon purple">{{ icon('calendar') }}</span><div><small>Próximas consultas</small><strong>{{ appointments|length }}</strong><a href="{{ url_for('main.agenda') }}">Ver agenda {{ icon('arrow-right') }}</a></div></article>
+  <article class="stat-card"><span class="stat-icon orange">{{ icon('plan') }}</span><div><small>Plano alimentar</small><strong class="text-value">{{ 'Ativo' if plan else 'Pendente' }}</strong>{% if plan %}<a href="{{ url_for('main.plan_detail', plan_id=plan.id) }}">Consultar {{ icon('arrow-right') }}</a>{% else %}<span class="muted-link">Aguarde seu nutricionista</span>{% endif %}</div></article>
 </section>
 
 <div class="content-grid two-one">
   <section class="panel">
     <div class="panel-header"><div><h2>Minha evolução</h2><p>Histórico dos últimos registros de peso.</p></div><a href="{{ url_for('main.progress') }}">Ver detalhes</a></div>
-    {% if weights %}<div class="chart-shell"><canvas id="progressChart" data-values='{{ weights|map(attribute="weight")|list|tojson }}' data-labels='{{ weights|map(attribute="recorded_on")|list|tojson }}' aria-label="Gráfico de evolução do peso"></canvas></div>{% else %}<div class="empty-inline"><span>↗</span><p>Registre seu primeiro peso para visualizar a evolução.</p><a href="{{ url_for('main.progress') }}">Registrar peso</a></div>{% endif %}
+    {% if weights %}<div class="chart-shell"><canvas id="progressChart" data-values='{{ weights|map(attribute="weight")|list|tojson }}' data-labels='{{ weights|map(attribute="recorded_on")|list|tojson }}' aria-label="Gráfico de evolução do peso"></canvas></div>{% else %}<div class="empty-inline"><span>{{ icon('trend') }}</span><p>Registre seu primeiro peso para visualizar a evolução.</p><a href="{{ url_for('main.progress') }}">Registrar peso</a></div>{% endif %}
   </section>
   <section class="panel plan-summary">
     <div class="panel-header"><div><h2>Plano atual</h2><p>{{ plan.title if plan else 'Ainda não publicado' }}</p></div></div>

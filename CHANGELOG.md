@@ -6,9 +6,31 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
 ### Planejado
 
-- receitas, alimentos personalizados e catálogo ampliado;
-- versionamento de planos alimentares publicados;
+- jornada móvel PWA, check-ins e notificações consentidas;
+- diário enriquecido com fotos, sintomas, humor e hidratação;
 - testes de navegador para os fluxos críticos de identidade e agenda.
+
+## [1.4.0] — 2026-09-22 — Inteligência Nutricional Brasileira
+
+### Adicionado
+
+- ambiente profissional para cadastrar alimentos personalizados e receitas;
+- cálculo de receitas no servidor a partir de ingredientes, rendimento e dez indicadores nutricionais;
+- sódio, gordura saturada e açúcares no catálogo, nas metas, nos planos e nos relatórios;
+- alertas de alergênicos confrontados com alergias, intolerâncias e restrições da anamnese;
+- versões numeradas e histórico de revisão dos planos alimentares;
+- catálogo isolado por nutricionista, mantendo os alimentos globais disponíveis;
+- biblioteca original de ícones vetoriais para toda a interface;
+- logomarca com transparência aplicada ao produto, documentos e README;
+- blueprint nutricional e migration v5 compatível com bancos existentes;
+- três novos cenários automatizados, elevando a suíte para 21 testes.
+
+### Segurança e integridade
+
+- nutrientes e alergênicos das receitas são recalculados no servidor;
+- alimentos particulares só podem ser usados pelo profissional proprietário;
+- planos publicados preservam cópias dos nutrientes de cada item;
+- alertas clínicos são reapresentados no detalhe do plano para revisão profissional.
 
 ## [1.3.0] — 2026-09-22 — Prontuário Clínico
 

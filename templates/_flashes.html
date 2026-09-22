@@ -2,7 +2,7 @@
   {% if messages %}
     <div class="flash-stack" aria-live="polite">
       {% for category, message in messages %}
-        <div class="flash flash-{{ category }}"><span>{{ message }}</span><button type="button" data-dismiss aria-label="Fechar">×</button></div>
+        <div class="flash flash-{{ category }}"><span>{{ message }}</span><button type="button" data-dismiss aria-label="Fechar">{{ icon('close') }}</button></div>
       {% endfor %}
     </div>
   {% endif %}

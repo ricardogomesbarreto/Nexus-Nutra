@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 22 de setembro de 2026, após a entrega da v1.3.0.
+> Atualizado em 22 de setembro de 2026, após a entrega da v1.4.0.
 
 ## Visão
 
@@ -20,16 +20,16 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ## Estado atual
 
-| Área | Entregue até a v1.3.0 |
+| Área | Entregue até a v1.4.0 |
 |---|---|
 | Contas | Cadastro, login, perfis de nutricionista e paciente |
 | Pacientes | Vínculo, busca, anamnese versionada, antropometria, evolução, consentimentos, anexos e relatório clínico |
-| Planos | Criação, metas, macros, micronutrientes, modelos e impressão/PDF |
-| Alimentos | Catálogo inicial TACO, categorias, medidas e cálculo por quantidade |
+| Planos | Criação, dez indicadores nutricionais, metas, alertas, revisões, modelos e impressão/PDF |
+| Alimentos | Catálogo inicial TACO, alimentos personalizados, receitas, alergênicos, medidas e cálculo por quantidade |
 | Acompanhamento | Diário alimentar e evolução de peso |
 | Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
 | Segurança | CSRF, hash de senha, verificação de e-mail, recuperação segura, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
-| Qualidade | Blueprints de autenticação e clínica, migrations numeradas, 18 testes, Ruff e GitHub Actions |
+| Qualidade | Blueprints de autenticação, clínica e nutrição, migrations numeradas, 21 testes, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
@@ -40,7 +40,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | P0 | SQLite e aplicação monolítica atendem ao MVP, mas limitam concorrência e crescimento | Risco operacional futuro |
 | P1 | Lembretes da agenda ainda são internos e não possuem entrega por e-mail, WhatsApp ou push | Menor alcance das automações |
 | P1 | Falta política operacional de retenção, exportação e exclusão do prontuário | Governança clínica ainda incompleta |
-| P1 | Catálogo é inicial e ainda não possui receitas, alimentos personalizados ou importação controlada | Prescrição ainda exige trabalho manual |
+| P1 | Catálogo ainda não possui importação controlada TACO/TBCA, sinônimos ou fontes versionadas | Cobertura e rastreabilidade nutricional ainda são limitadas |
 | P1 | Diário não aceita fotos, sintomas, humor, água, atividade ou comentários do profissional | Menor contexto clínico e adesão |
 | P2 | Não há equipe, unidades, permissões granulares, financeiro ou indicadores da clínica | Limita operação multiprofissional |
 | P2 | Não há notificações push, PWA, API pública ou integração com calendários e wearables | Experiência desconectada |
@@ -52,7 +52,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 flowchart TD
     A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura ✅"]
     S --> B["v1.3 · Prontuário Clínico ✅"]
-    B --> C["v1.4 · Inteligência Nutricional"]
+    B --> C["v1.4 · Inteligência Nutricional ✅"]
     C --> D["v1.5 · Engajamento PWA"]
     D --> E["v1.6 · Gestão de Clínicas"]
     E --> F["v1.7 · Integrações"]
@@ -158,29 +158,27 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### v1.4.0 — Inteligência Nutricional Brasileira
 
+**Status:** entregue em 22 de setembro de 2026. Importação TACO/TBCA, sinônimos, análise do diário e relatórios de ingestão seguem priorizados como extensões futuras.
+
 **Objetivo:** tornar a prescrição rápida, verificável e flexível sem automatizar a decisão clínica.
 
 #### Entregas
 
-- importação controlada de conjuntos TACO/TBCA com versão e procedência;
-- busca tolerante a acentos, sinônimos e nomes populares;
 - alimentos e medidas caseiras personalizados pelo profissional;
 - receitas com ingredientes, rendimento e porções;
-- cálculo de receitas e preparações;
-- mais vitaminas, minerais, gordura saturada, sódio e açúcares;
-- biblioteca de refeições e modelos por objetivo;
-- substituições com critérios configuráveis pelo nutricionista;
+- cálculo de receitas e preparações no servidor;
+- energia, macronutrientes, fibras, cálcio, ferro, gordura saturada, sódio e açúcares;
+- catálogo profissional isolado por nutricionista;
 - alertas de alergênicos e conflitos com restrições cadastradas;
-- análise do diário versus metas do plano;
-- relatórios de ingestão em PDF e CSV;
-- versionamento de planos publicados.
+- versionamento de planos publicados;
+- biblioteca original de ícones SVG e identidade visual renovada.
 
 #### Definição de pronto
 
-- toda composição informa fonte e versão;
 - alterações em alimentos não modificam retroativamente planos publicados;
 - arredondamentos e unidades são testados;
-- sugestões são apresentadas como apoio e exigem confirmação profissional.
+- alertas são apresentados como apoio e exigem confirmação profissional;
+- receitas e alimentos particulares respeitam a propriedade do nutricionista.
 
 **Complexidade:** alta · **Prioridade:** P1
 
@@ -373,19 +371,19 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer agora
 
-1. iniciar a inteligência nutricional da v1.4.0;
-2. separar os demais domínios em blueprints e serviços;
-3. criar testes de navegador das jornadas críticas;
-4. definir retenção, exportação e exclusão de dados;
-5. ampliar alimentos, receitas e versionamento de planos.
+1. iniciar a jornada do paciente e a base PWA da v1.5.0;
+2. criar testes de navegador das jornadas críticas;
+3. definir retenção, exportação e exclusão de dados;
+4. ampliar o catálogo com importação controlada e fontes versionadas;
+5. analisar diário alimentar versus metas do plano.
 
 ### Fazer em seguida
 
-1. receitas e alimentos personalizados;
-2. alertas de alergênicos e restrições;
-3. análise do diário versus metas do plano;
-4. relatórios de ingestão e versionamento de planos;
-5. PWA e notificações consentidas.
+1. PWA instalável e navegação móvel refinada;
+2. fotos, sintomas, humor, água e saciedade no diário;
+3. check-ins e comentários do nutricionista;
+4. notificações consentidas e lembretes externos;
+5. relatórios de ingestão em PDF e CSV.
 
 ### Adiar até existir base operacional
 

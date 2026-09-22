@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import secrets
 import sqlite3
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from urllib.parse import urlparse
@@ -26,7 +27,18 @@ from .db import get_db
 
 bp = Blueprint("main", __name__)
 
-NUTRIENT_FIELDS = ("calories", "protein", "carbs", "fat", "fiber", "calcium", "iron")
+NUTRIENT_FIELDS = (
+    "calories",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "calcium",
+    "iron",
+    "sodium",
+    "saturated_fat",
+    "sugars",
+)
 APPOINTMENT_STATUSES = {
     "scheduled": "Agendada",
     "confirmed": "Confirmada",
@@ -248,12 +260,41 @@ def _plan_items(plan_id: int):
     return get_db().execute(
         """SELECT mi.*, f.category AS food_category,
                   f.household_measure, f.source AS food_source,
-                  f.calories AS food_calories_100g
+                  f.calories AS food_calories_100g, f.allergens AS food_allergens
            FROM meal_items mi
            LEFT JOIN foods f ON f.id = mi.food_id
            WHERE mi.plan_id = ? ORDER BY mi.id""",
         (plan_id,),
     ).fetchall()
+
+
+def _normalized(value: str) -> str:
+    return "".join(
+        character
+        for character in unicodedata.normalize("NFKD", value.lower())
+        if not unicodedata.combining(character)
+    )
+
+
+def _plan_alerts(patient_id: int, items) -> list[dict[str, str]]:
+    profile = get_db().execute(
+        """SELECT allergies, intolerances, restrictions FROM anamnesis_versions
+           WHERE patient_id = ? ORDER BY version DESC LIMIT 1""",
+        (patient_id,),
+    ).fetchone()
+    if not profile:
+        return []
+    patient_context = _normalized(
+        " ".join(str(profile[field] or "") for field in ("allergies", "intolerances", "restrictions"))
+    )
+    alerts = []
+    for item in items:
+        allergens = item["food_allergens"] if "food_allergens" in item.keys() else ""
+        for allergen in (allergens or "").split(","):
+            label = allergen.strip()
+            if label and _normalized(label) in patient_context:
+                alerts.append({"food": item["food_name"], "allergen": label})
+    return alerts
 
 
 def _can_contact(other_id: int) -> bool:
@@ -372,8 +413,8 @@ def dashboard():
 def food_catalog():
     search = request.args.get("q", "").strip()
     category = request.args.get("categoria", "").strip()
-    clauses = ["active = 1"]
-    params: list[str] = []
+    clauses = ["active = 1", "(nutritionist_id IS NULL OR nutritionist_id = ?)"]
+    params: list[str | int] = [g.user["id"]]
     if search:
         clauses.append("name LIKE ?")
         params.append(f"%{search}%")
@@ -386,7 +427,10 @@ def food_catalog():
         params,
     ).fetchall()
     categories = db.execute(
-        "SELECT DISTINCT category FROM foods WHERE active = 1 ORDER BY category"
+        """SELECT DISTINCT category FROM foods
+           WHERE active = 1 AND (nutritionist_id IS NULL OR nutritionist_id = ?)
+           ORDER BY category""",
+        (g.user["id"],),
     ).fetchall()
     return render_template(
         "food_catalog.html",
@@ -492,8 +536,16 @@ def new_plan(patient_id: int):
         abort(404)
     db = get_db()
     foods_catalog = db.execute(
-        "SELECT * FROM foods WHERE active = 1 ORDER BY category, name"
+        """SELECT * FROM foods WHERE active = 1
+           AND (nutritionist_id IS NULL OR nutritionist_id = ?)
+           ORDER BY category, name""",
+        (g.user["id"],),
     ).fetchall()
+    clinical_profile = db.execute(
+        """SELECT allergies, intolerances, restrictions FROM anamnesis_versions
+           WHERE nutritionist_id = ? AND patient_id = ? ORDER BY version DESC LIMIT 1""",
+        (g.user["id"], patient_id),
+    ).fetchone()
     model = None
     model_items = []
     model_id = int(request.args.get("modelo", 0) or 0)
@@ -525,7 +577,11 @@ def new_plan(patient_id: int):
                 food_id = int(food_ids[index]) if index < len(food_ids) and food_ids[index].isdigit() else None
                 amount_g = _number(amounts[index]) if index < len(amounts) else 0
                 catalog_food = (
-                    db.execute("SELECT * FROM foods WHERE id = ? AND active = 1", (food_id,)).fetchone()
+                    db.execute(
+                        """SELECT * FROM foods WHERE id = ? AND active = 1
+                           AND (nutritionist_id IS NULL OR nutritionist_id = ?)""",
+                        (food_id, g.user["id"]),
+                    ).fetchone()
                     if food_id
                     else None
                 )
@@ -561,38 +617,35 @@ def new_plan(patient_id: int):
                     )
                 )
             db.execute("UPDATE meal_plans SET active = 0 WHERE patient_id = ?", (patient_id,))
+            nutrient_columns = ", ".join(NUTRIENT_FIELDS)
+            target_columns = ", ".join(f"target_{field}" for field in NUTRIENT_FIELDS)
+            placeholders = ", ".join("?" for _ in range(7 + len(NUTRIENT_FIELDS) * 2))
+            revision_of = (model["revision_of"] or model["id"]) if model else None
+            version_number = (model["version_number"] + 1) if model else 1
             cursor = db.execute(
-                """INSERT INTO meal_plans
-                   (nutritionist_id, patient_id, title, objective, guidance,
-                    calories, protein, carbs, fat, fiber, calcium, iron,
-                    target_calories, target_protein, target_carbs, target_fat,
-                    target_fiber, target_calcium, target_iron)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                f"""INSERT INTO meal_plans
+                    (nutritionist_id, patient_id, title, objective, guidance,
+                     {nutrient_columns}, {target_columns}, revision_of, version_number)
+                    VALUES ({placeholders})""",
                 (
                     g.user["id"], patient_id, title,
                     request.form.get("objective", "").strip(),
                     request.form.get("guidance", "").strip(),
                     *[round(totals[field], 2) for field in NUTRIENT_FIELDS],
-                    *[
-                        _number(request.form.get(f"target_{field}"))
-                        for field in NUTRIENT_FIELDS
-                    ],
+                    *[_number(request.form.get(f"target_{field}")) for field in NUTRIENT_FIELDS],
+                    revision_of, version_number,
                 ),
             )
             for meal_name, food, quantity, nutrients, food_id, amount_g in items:
+                item_placeholders = ", ".join("?" for _ in range(6 + len(NUTRIENT_FIELDS)))
                 db.execute(
-                    """INSERT INTO meal_items
-                       (plan_id, meal_name, food_name, quantity, calories, protein,
-                        carbs, fat, fiber, calcium, iron, food_id, amount_g)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    f"""INSERT INTO meal_items
+                        (plan_id, meal_name, food_name, quantity, {nutrient_columns},
+                         food_id, amount_g)
+                        VALUES ({item_placeholders})""",
                     (
-                        cursor.lastrowid,
-                        meal_name,
-                        food,
-                        quantity,
-                        *[nutrients[field] for field in NUTRIENT_FIELDS],
-                        food_id,
-                        amount_g,
+                        cursor.lastrowid, meal_name, food, quantity,
+                        *[nutrients[field] for field in NUTRIENT_FIELDS], food_id, amount_g,
                     ),
                 )
             db.commit()
@@ -605,6 +658,7 @@ def new_plan(patient_id: int):
         foods_payload=[dict(food) for food in foods_catalog],
         model=model,
         model_items=model_items,
+        clinical_profile=clinical_profile,
     )
 
 
@@ -622,10 +676,12 @@ def plan_detail(plan_id: int):
             alternatives[item["id"]] = db.execute(
                 """SELECT name, household_measure FROM foods
                    WHERE category = ? AND id != ? AND active = 1
+                     AND (nutritionist_id IS NULL OR nutritionist_id = ?)
                    ORDER BY ABS(calories - ?) LIMIT 2""",
                 (
                     item["food_category"],
                     item["food_id"],
+                    plan["nutritionist_id"],
                     item["food_calories_100g"],
                 ),
             ).fetchall()
@@ -641,6 +697,7 @@ def plan_detail(plan_id: int):
         meals=meals,
         alternatives=alternatives,
         progress=progress,
+        alerts=_plan_alerts(plan["patient_id"], items),
     )
 
 

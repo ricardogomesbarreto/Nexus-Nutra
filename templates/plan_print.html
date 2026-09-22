@@ -9,7 +9,7 @@
 <body class="print-plan">
   <div class="print-toolbar"><button class="button button-primary" type="button" onclick="window.print()">Imprimir ou salvar em PDF</button></div>
   <main class="print-document">
-    <header class="print-header"><img src="{{ url_for('static', filename='img/nexus-nutra-logo.jpeg') }}" alt="Nexus Nutra"><div><span>PLANO ALIMENTAR</span><h1>{{ plan.title }}</h1><p>Emitido em {{ plan.created_at[:10]|brdate }}</p></div></header>
+    <header class="print-header"><img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra"><div><span>PLANO ALIMENTAR</span><h1>{{ plan.title }}</h1><p>Emitido em {{ plan.created_at[:10]|brdate }}</p></div></header>
     <section class="print-identification"><div><small>Paciente</small><strong>{{ plan.patient_name }}</strong></div><div><small>Nutricionista</small><strong>{{ plan.nutritionist_name }}</strong><span>{{ plan.nutritionist_crn or 'CRN não informado' }}</span></div></section>
     {% if plan.objective or plan.guidance %}<section class="print-guidance"><h2>{{ plan.objective or 'Orientações' }}</h2><p>{{ plan.guidance }}</p></section>{% endif %}
     <section class="print-totals"><div><b>{{ plan.calories|round|int }}</b><span>kcal</span></div><div><b>{{ plan.protein|round(1) }} g</b><span>Proteínas</span></div><div><b>{{ plan.carbs|round(1) }} g</b><span>Carboidratos</span></div><div><b>{{ plan.fat|round(1) }} g</b><span>Gorduras</span></div></section>

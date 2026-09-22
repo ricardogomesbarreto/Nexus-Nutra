@@ -3,13 +3,13 @@
 {% block content %}
 <header class="page-header with-action clinical-hero">
   <div>
-    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">← Visão do paciente</a>
+    <a class="back-link" href="{{ url_for('main.patient_detail', patient_id=patient.id) }}">{{ icon('arrow-left') }} Visão do paciente</a>
     <div class="patient-title">
       <span class="avatar xlarge">{{ patient.name[:1] }}</span>
       <div><span class="eyebrow">PRONTUÁRIO CLÍNICO · V1.3</span><h1>{{ patient.name }}</h1><p>{{ patient.email }} · {{ patient.phone or 'Telefone não informado' }}</p></div>
     </div>
   </div>
-  <div class="header-actions"><a class="button button-secondary" href="{{ url_for('clinical.report', patient_id=patient.id) }}" target="_blank">Gerar relatório</a><a class="button button-primary" href="#avaliacoes">+ Nova avaliação</a></div>
+  <div class="header-actions"><a class="button button-secondary" href="{{ url_for('clinical.report', patient_id=patient.id) }}" target="_blank">{{ icon('document') }} Gerar relatório</a><a class="button button-primary" href="#avaliacoes">{{ icon('plus') }} Nova avaliação</a></div>
 </header>
 
 <nav class="record-tabs" aria-label="Seções do prontuário">

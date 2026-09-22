@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Inteligência nutricional — Nexus Nutra{% endblock %}
+{% block content %}
+<header class="page-header with-action nutrition-lab-hero">
+  <div><span class="eyebrow">INTELIGÊNCIA NUTRICIONAL · V1.4</span><h1>Laboratório nutricional</h1><p>Crie alimentos e receitas próprias com cálculos rastreáveis e alertas clínicos.</p></div>
+  <a class="button button-secondary" href="{{ url_for('main.food_catalog') }}">{{ icon('food') }} Abrir catálogo</a>
+</header>
+
+<section class="nutrition-overview">
+  <article><span>{{ icon('food') }}</span><div><strong>{{ custom_foods|length }}</strong><small>alimentos próprios</small></div></article>
+  <article><span>{{ icon('recipe') }}</span><div><strong>{{ recipes|length }}</strong><small>receitas calculadas</small></div></article>
+  <article><span>{{ icon('spark') }}</span><div><strong>10</strong><small>nutrientes por item</small></div></article>
+</section>
+
+<div class="content-grid nutrition-builder-grid">
+  <section id="alimento" class="panel nutrition-editor">
+    <div class="panel-header"><div><span class="section-kicker">CADASTRO PROFISSIONAL</span><h2>Novo alimento</h2><p>Informe a composição por 100 g ou 100 ml.</p></div><span class="editor-icon">{{ icon('food') }}</span></div>
+    <form method="post" class="clinical-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="food">
+      <label>Nome<input name="name" required maxlength="120" placeholder="Ex.: Granola artesanal"></label>
+      <label>Categoria<input name="category" required placeholder="Ex.: Cereais"></label>
+      <label>Medida caseira<input name="household_measure" required placeholder="Ex.: 2 colheres (30 g)"></label>
+      <label>Alergênicos<input name="allergens" placeholder="Ex.: glúten, castanhas"></label>
+      {% for field, label, unit in [('calories','Energia','kcal'),('protein','Proteínas','g'),('carbs','Carboidratos','g'),('fat','Gorduras','g'),('fiber','Fibras','g'),('calcium','Cálcio','mg'),('iron','Ferro','mg'),('sodium','Sódio','mg'),('saturated_fat','Gordura saturada','g'),('sugars','Açúcares','g')] %}<label>{{ label }} <small>{{ unit }}/100 g</small><input type="number" name="{{ field }}" min="0" step="0.01" value="0"></label>{% endfor %}
+      <div class="form-footer"><p>Fonte identificada como cadastro profissional.</p><button class="button button-primary" type="submit">{{ icon('plus') }} Salvar alimento</button></div>
+    </form>
+  </section>
+
+  <section id="receita" class="panel nutrition-editor">
+    <div class="panel-header"><div><span class="section-kicker">CÁLCULO AUTOMÁTICO</span><h2>Nova receita</h2><p>O resultado entra no catálogo por 100 g e porção.</p></div><span class="editor-icon">{{ icon('recipe') }}</span></div>
+    <form method="post" class="recipe-form" data-recipe-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="recipe">
+      <script type="application/json" data-recipe-catalog>{{ foods_payload|tojson }}</script>
+      <div class="form-grid"><label>Nome da receita<input name="recipe_name" required maxlength="120" placeholder="Ex.: Panqueca de banana"></label><label>Rendimento total (g)<input type="number" name="yield_g" min="1" step="0.1" required></label><label>Porções<input type="number" name="servings" min="1" step="1" value="1" required></label><label>Alergênicos adicionais<input name="recipe_allergens" placeholder="Separados por vírgula"></label></div>
+      <div class="recipe-items" data-recipe-items>
+        <article data-recipe-row><label>Ingrediente<select name="recipe_food_id[]" required><option value="">Selecione...</option>{% for food in foods %}<option value="{{ food.id }}">{{ food.name }} · {{ food.category }}</option>{% endfor %}</select></label><label>Quantidade (g/ml)<input type="number" name="recipe_amount_g[]" min="0.1" step="0.1" required></label><button type="button" class="icon-button" data-remove-recipe-item aria-label="Remover ingrediente">{{ icon('close') }}</button></article>
+      </div>
+      <button class="button button-secondary button-sm" type="button" data-add-recipe-item>{{ icon('plus') }} Adicionar ingrediente</button>
+      <label class="instructions-field">Modo de preparo<textarea name="instructions" rows="4" placeholder="Descreva as etapas de preparo"></textarea></label>
+      <div class="recipe-preview"><div><small>Energia estimada</small><strong><span data-recipe-total="calories">0</span> kcal</strong></div><div><small>Proteínas</small><strong><span data-recipe-total="protein">0</span> g</strong></div><div><small>Carboidratos</small><strong><span data-recipe-total="carbs">0</span> g</strong></div><div><small>Gorduras</small><strong><span data-recipe-total="fat">0</span> g</strong></div></div>
+      <button class="button button-primary button-block" type="submit">{{ icon('recipe') }} Calcular e salvar receita</button>
+    </form>
+  </section>
+</div>
+
+<section id="biblioteca" class="panel nutrition-library">
+  <div class="panel-header"><div><span class="section-kicker">BIBLIOTECA PROFISSIONAL</span><h2>Conteúdo próprio</h2><p>Itens disponíveis somente para suas prescrições.</p></div></div>
+  {% if recipes or custom_foods %}<div class="library-grid">
+    {% for recipe in recipes %}<article><span class="library-icon recipe">{{ icon('recipe') }}</span><div><span class="badge badge-success">Receita</span><h3>{{ recipe.name }}</h3><p>{{ recipe.servings }} porção(ões) · {{ recipe.yield_g|round|int }} g · {{ recipe.calories|round|int }} kcal totais</p>{% if recipe.allergens %}<small>{{ icon('alert') }} {{ recipe.allergens }}</small>{% endif %}</div></article>{% endfor %}
+    {% for food in custom_foods %}<article><span class="library-icon">{{ icon('food') }}</span><div><span class="badge badge-neutral">Alimento</span><h3>{{ food.name }}</h3><p>{{ food.category }} · {{ food.calories|round|int }} kcal/100 g</p>{% if food.allergens %}<small>{{ icon('alert') }} {{ food.allergens }}</small>{% endif %}</div></article>{% endfor %}
+  </div>{% else %}<div class="empty-state"><span>{{ icon('spark') }}</span><h2>Sua biblioteca começa aqui</h2><p>Cadastre o primeiro alimento ou receita para reutilizar nas prescrições.</p></div>{% endif %}
+</section>
+{% endblock %}

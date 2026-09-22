@@ -50,11 +50,28 @@
   const planForm = document.querySelector("[data-plan-form]");
   if (planForm) {
     const container = planForm.querySelector("[data-food-items]");
-    const nutrientNames = ["calories", "protein", "carbs", "fat", "fiber", "calcium", "iron"];
+    const nutrientNames = ["calories", "protein", "carbs", "fat", "fiber", "calcium", "iron", "sodium", "saturated_fat", "sugars"];
     const catalogNode = planForm.querySelector("[data-food-catalog]");
     const catalog = catalogNode ? JSON.parse(catalogNode.textContent || "[]") : [];
-    const normalize = (value) => value.trim().toLocaleLowerCase("pt-BR");
+    const clinicalNode = planForm.querySelector("[data-clinical-context]");
+    const clinical = clinicalNode ? JSON.parse(clinicalNode.textContent || "{}") : {};
+    const normalize = (value) => value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
     const catalogByName = new Map(catalog.map((food) => [normalize(food.name), food]));
+    const clinicalText = normalize(Object.values(clinical).join(" "));
+    const syncAlerts = () => {
+      const matches = [];
+      container.querySelectorAll("[data-food-search]").forEach((input) => {
+        const food = catalogByName.get(normalize(input.value || ""));
+        String(food?.allergens || "").split(",").forEach((raw) => {
+          const allergen = raw.trim();
+          if (allergen && clinicalText.includes(normalize(allergen))) matches.push(`${food.name}: ${allergen}`);
+        });
+      });
+      const panel = planForm.querySelector("[data-plan-alerts]");
+      const text = planForm.querySelector("[data-plan-alert-text]");
+      panel?.classList.toggle("hidden", matches.length === 0);
+      if (text) text.textContent = matches.length ? `Revise ${[...new Set(matches)].join("; ")}.` : "";
+    };
     const renumber = () => {
       container.querySelectorAll("[data-food-row]").forEach((row, index) => {
         const number = row.querySelector("[data-row-number]");
@@ -80,7 +97,7 @@
         if (foodId) foodId.value = "";
         if (status) status.textContent = "Preenchimento manual";
         if (source) source.textContent = "Alimento fora do catálogo: informe os nutrientes manualmente.";
-        totals();
+        totals(); syncAlerts();
         return;
       }
       if (foodId) foodId.value = String(food.id);
@@ -92,7 +109,7 @@
           if (input) input.value = ((Number(food[name]) || 0) * amount / 100).toFixed(1);
         });
       }
-      totals();
+      totals(); syncAlerts();
     };
     const bindRow = (row) => {
       row.querySelectorAll("[data-nutrient]").forEach((input) => input.addEventListener("input", totals));
@@ -100,7 +117,7 @@
       row.querySelector("[data-amount-g]")?.addEventListener("input", () => calculateRow(row));
       row.querySelector("[data-remove-food]")?.addEventListener("click", () => {
         if (container.querySelectorAll("[data-food-row]").length > 1) {
-          row.remove(); renumber(); totals();
+          row.remove(); renumber(); totals(); syncAlerts();
         }
       });
     };
@@ -118,7 +135,41 @@
       bindRow(clone); container.appendChild(clone); renumber(); totals();
       clone.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-    renumber(); totals();
+    renumber(); totals(); syncAlerts();
+  }
+
+  const recipeForm = document.querySelector("[data-recipe-form]");
+  if (recipeForm) {
+    const catalogNode = recipeForm.querySelector("[data-recipe-catalog]");
+    const catalog = catalogNode ? JSON.parse(catalogNode.textContent || "[]") : [];
+    const byId = new Map(catalog.map((food) => [String(food.id), food]));
+    const container = recipeForm.querySelector("[data-recipe-items]");
+    const calculate = () => {
+      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      container.querySelectorAll("[data-recipe-row]").forEach((row) => {
+        const food = byId.get(row.querySelector("select")?.value || "");
+        const amount = Number.parseFloat(row.querySelector("input")?.value) || 0;
+        Object.keys(totals).forEach((field) => { totals[field] += (Number(food?.[field]) || 0) * amount / 100; });
+      });
+      Object.entries(totals).forEach(([field, value]) => {
+        const output = recipeForm.querySelector(`[data-recipe-total='${field}']`);
+        if (output) output.textContent = field === "calories" ? String(Math.round(value)) : value.toFixed(1);
+      });
+    };
+    const bind = (row) => {
+      row.querySelectorAll("select, input").forEach((input) => input.addEventListener("input", calculate));
+      row.querySelector("[data-remove-recipe-item]")?.addEventListener("click", () => {
+        if (container.querySelectorAll("[data-recipe-row]").length > 1) row.remove();
+        calculate();
+      });
+    };
+    container.querySelectorAll("[data-recipe-row]").forEach(bind);
+    recipeForm.querySelector("[data-add-recipe-item]")?.addEventListener("click", () => {
+      const clone = container.querySelector("[data-recipe-row]").cloneNode(true);
+      clone.querySelectorAll("select, input").forEach((input) => { input.value = ""; });
+      bind(clone); container.appendChild(clone); calculate();
+    });
+    calculate();
   }
 
   const chart = document.querySelector("#progressChart");

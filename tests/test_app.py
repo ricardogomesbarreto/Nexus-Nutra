@@ -347,7 +347,7 @@ def test_versioned_migrations_create_security_foundation(app):
             row["name"] for row in db.execute("PRAGMA table_info(appointments)")
         }
         user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
-        assert versions == {1, 2, 3, 4}
+        assert versions == {1, 2, 3, 4, 5}
         assert {"duration_minutes", "reminder_minutes", "cancellation_reason"} <= appointment_columns
         assert {"failed_login_attempts", "locked_until", "session_version"} <= user_columns
         assert db.execute(
@@ -768,3 +768,134 @@ def test_clinical_attachment_validates_type_and_restricts_download(app, client, 
     assert downloaded.status_code == 200
     assert downloaded.data == b"%PDF-1.4 clinical"
     assert "attachment" in downloaded.headers["Content-Disposition"]
+
+
+def test_original_icon_system_is_available_and_used(client):
+    sprite = client.get("/static/img/nexus-icons.svg")
+    home = client.get("/")
+    assert sprite.status_code == 200
+    assert sprite.data.count(b"<symbol") >= 25
+    assert b'id="icon-dashboard"' in sprite.data
+    assert b"nexus-icons.svg#icon-patients" in home.data
+
+
+def test_nutrition_workspace_creates_custom_food_and_calculated_recipe(
+    app, client, token
+):
+    logged_token, nutritionist_id, _patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    response = client.post(
+        "/nutricao",
+        data={
+            "csrf_token": logged_token,
+            "kind": "food",
+            "name": "Pasta de castanha da casa",
+            "category": "Oleaginosas",
+            "household_measure": "1 colher (20 g)",
+            "allergens": "castanhas",
+            "calories": "600",
+            "protein": "20",
+            "carbs": "20",
+            "fat": "50",
+            "fiber": "8",
+            "calcium": "100",
+            "iron": "3",
+            "sodium": "10",
+            "saturated_fat": "8",
+            "sugars": "5",
+        },
+        follow_redirects=True,
+    )
+    assert b"Alimento personalizado adicionado" in response.data
+
+    with app.app_context():
+        db = get_db()
+        custom = db.execute(
+            "SELECT * FROM foods WHERE name = 'Pasta de castanha da casa'"
+        ).fetchone()
+        banana = db.execute(
+            "SELECT id FROM foods WHERE name = 'Banana prata, crua'"
+        ).fetchone()
+        assert custom["nutritionist_id"] == nutritionist_id
+        assert custom["sodium"] == 10
+
+    response = client.post(
+        "/nutricao",
+        data={
+            "csrf_token": logged_token,
+            "kind": "recipe",
+            "recipe_name": "Creme energético da casa",
+            "yield_g": "200",
+            "servings": "2",
+            "recipe_food_id[]": [str(banana["id"]), str(custom["id"])],
+            "recipe_amount_g[]": ["100", "100"],
+            "instructions": "Misturar e servir.",
+        },
+        follow_redirects=True,
+    )
+    assert b"Receita calculada" in response.data
+    with app.app_context():
+        db = get_db()
+        recipe = db.execute(
+            "SELECT * FROM recipes WHERE name = 'Creme energético da casa'"
+        ).fetchone()
+        catalog_food = db.execute(
+            "SELECT * FROM foods WHERE recipe_id = ?", (recipe["id"],)
+        ).fetchone()
+        assert recipe["calories"] == 698
+        assert recipe["servings"] == 2
+        assert catalog_food["calories"] == 349
+        assert catalog_food["household_measure"] == "1 porção (100 g)"
+        assert "castanhas" in catalog_food["allergens"]
+        assert db.execute(
+            "SELECT COUNT(*) FROM recipe_items WHERE recipe_id = ?", (recipe["id"],)
+        ).fetchone()[0] == 2
+
+
+def test_plan_alerts_allergen_and_versions_revision(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    client.post(
+        f"/pacientes/{patient_id}/prontuario/anamnese",
+        data={"csrf_token": logged_token, "allergies": "Glúten"},
+    )
+    with app.app_context():
+        bread = get_db().execute(
+            "SELECT id FROM foods WHERE name = 'Pão francês'"
+        ).fetchone()
+
+    def publish(title, model_id=None):
+        suffix = f"?modelo={model_id}" if model_id else ""
+        return client.post(
+            f"/planos/novo/{patient_id}{suffix}",
+            data={
+                "csrf_token": logged_token,
+                "title": title,
+                "meal_name[]": ["Café da manhã"],
+                "food_name[]": ["Pão francês"],
+                "food_id[]": [str(bread["id"])],
+                "amount_g[]": ["50"],
+                "quantity[]": [""],
+            },
+            follow_redirects=True,
+        )
+
+    first = publish("Plano seguro v1")
+    assert b"Alerta de alergia ou restri" in first.data
+    assert b"gl\xc3\xbaten" in first.data
+    with app.app_context():
+        first_id = get_db().execute(
+            "SELECT id FROM meal_plans WHERE title = 'Plano seguro v1'"
+        ).fetchone()["id"]
+    second = publish("Plano seguro v2", first_id)
+    assert b"VERS\xc3\x83O 2" in second.data
+    with app.app_context():
+        db = get_db()
+        revision = db.execute(
+            "SELECT * FROM meal_plans WHERE title = 'Plano seguro v2'"
+        ).fetchone()
+        assert revision["revision_of"] == first_id
+        assert revision["version_number"] == 2
+        assert revision["sodium"] >= 0
