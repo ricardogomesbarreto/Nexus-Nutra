@@ -28,6 +28,13 @@ bp = Blueprint("auth", __name__)
 
 PRIVACY_POLICY_VERSION = "2026-09"
 TOKEN_PURPOSES = {"verify_email", "reset_password"}
+MIN_PASSWORD_LENGTH = 12
+MAX_PASSWORD_LENGTH = 128
+
+
+def password_is_valid(password: str) -> bool:
+    """Aceita frases-senha longas sem impor regras de composição frágeis."""
+    return MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH
 
 
 def _safe_next(target: str | None) -> str | None:
@@ -131,8 +138,8 @@ def register():
             error = "Informe seu nome completo."
         elif "@" not in email:
             error = "Informe um e-mail válido."
-        elif len(password) < 8:
-            error = "A senha precisa ter pelo menos 8 caracteres."
+        elif not password_is_valid(password):
+            error = "A senha precisa ter entre 12 e 128 caracteres."
         elif role not in {"nutritionist", "patient"}:
             error = "Selecione um perfil válido."
         elif role == "nutritionist" and not crn:
@@ -343,8 +350,8 @@ def reset_password(token: str):
     if request.method == "POST":
         password = request.form.get("password", "")
         confirmation = request.form.get("password_confirmation", "")
-        if len(password) < 8:
-            flash("A nova senha precisa ter pelo menos 8 caracteres.", "error")
+        if not password_is_valid(password):
+            flash("A nova senha precisa ter entre 12 e 128 caracteres.", "error")
         elif password != confirmation:
             flash("A confirmação da senha não corresponde.", "error")
         else:

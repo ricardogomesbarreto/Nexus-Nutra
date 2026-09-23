@@ -69,8 +69,12 @@ def test_home_and_security_headers(client):
     response = client.get("/")
     assert response.status_code == 200
     assert b"Nexus Nutra" in response.data
+    assert b"PLANOS NEXUS NUTRA" in response.data
+    assert b"R$" in response.data
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert "default-src 'self'" in response.headers["Content-Security-Policy"]
+    assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin"
 
 
 def test_registration_login_and_role_dashboard(client, token):
@@ -970,7 +974,7 @@ def test_patient_enriched_diary_photo_checkin_and_habit_journey(app, client, tok
 
     photo = client.get(f"/diario/{entry['id']}/foto")
     assert photo.status_code == 200
-    assert photo.headers["Cache-Control"] == "private, no-store"
+    assert photo.headers["Cache-Control"].startswith("private, no-store")
     assert photo.data.startswith(b"\xff\xd8\xff")
 
     client.post(

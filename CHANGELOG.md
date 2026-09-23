@@ -10,6 +10,26 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 - notificações consentidas e lembretes externos;
 - testes de navegador para os fluxos críticos de identidade e agenda.
 
+## [1.5.1] — 2026-09-23 — Base SaaS e Segurança de Produção
+
+### Adicionado
+
+- tabela comercial proposta em reais com planos Essencial, Profissional e Clínica;
+- alternância acessível entre ciclos mensal e anual;
+- decisão arquitetural de Hostinger VPS com PostgreSQL como banco principal;
+- documentação de topologia, migração, backup, restauração e checklist de lançamento;
+- política pública de segurança e resposta responsável a vulnerabilidades.
+
+### Segurança
+
+- CSP com nonce, HSTS em produção e bloqueio de framing;
+- validação de hosts, configuração explícita de proxy confiável e isolamento de origem;
+- cookies `Secure`, `HttpOnly`, `SameSite=Lax` e prefixo `__Host-` em produção;
+- sessão absoluta de oito horas e respostas autenticadas com `private, no-store`;
+- limite de partes e memória de formulários;
+- senha mínima de 12 caracteres, com suporte a frases-senha de até 128 caracteres;
+- bloqueio documental do uso clínico real enquanto a migração PostgreSQL não estiver validada.
+
 ## [1.5.0] — 2026-09-23 — Jornada do Paciente e PWA
 
 ### Adicionado

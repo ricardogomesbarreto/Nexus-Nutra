@@ -507,8 +507,8 @@ def new_patient():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        if len(name) < 3 or "@" not in email or len(password) < 8:
-            flash("Preencha nome, e-mail válido e senha inicial de 8 caracteres.", "error")
+        if len(name) < 3 or "@" not in email or not 12 <= len(password) <= 128:
+            flash("Preencha nome, e-mail válido e senha inicial de 12 a 128 caracteres.", "error")
         else:
             db = get_db()
             try:

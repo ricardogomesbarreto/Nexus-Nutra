@@ -15,7 +15,8 @@
     <span class="eyebrow">MODO OFFLINE</span>
     <h1>Você está sem conexão.</h1>
     <p>Por privacidade, planos, diário e dados clínicos não ficam armazenados neste dispositivo. Reconecte-se para acessar sua jornada com segurança.</p>
-    <button class="button button-primary" type="button" onclick="window.location.reload()">{{ icon('refresh') }} Tentar novamente</button>
+    <button class="button button-primary" type="button" data-reload-page>{{ icon('refresh') }} Tentar novamente</button>
   </section></main>
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

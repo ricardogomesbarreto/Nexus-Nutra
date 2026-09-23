@@ -22,7 +22,11 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Validate dependency graph
+        run: pip check
       - name: Lint
         run: ruff check .
+      - name: Validate JavaScript
+        run: node --check static/js/app.js
       - name: Tests
         run: python -m pytest

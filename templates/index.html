@@ -50,5 +50,39 @@
   </div>
 </section>
 
+<section class="pricing-section" id="planos" aria-labelledby="pricing-title">
+  <div class="section-heading">
+    <span class="eyebrow">PLANOS NEXUS NUTRA</span>
+    <h2 id="pricing-title">Tecnologia que cabe na rotina do consultório</h2>
+    <p>Valores propostos para o lançamento, com ciclos mensal e anual para acompanhar cada etapa do cuidado.</p>
+  </div>
+  <div class="billing-toggle" role="group" aria-label="Período de cobrança" data-billing-toggle>
+    <button type="button" class="active" data-billing="monthly" aria-pressed="true">Mensal</button>
+    <button type="button" data-billing="annual" aria-pressed="false">Anual <span>economize 2 meses</span></button>
+  </div>
+  <div class="pricing-grid">
+    <article class="pricing-card">
+      <div><span class="plan-label">ESSENCIAL</span><h3>Consultório em movimento</h3><p>Para quem está organizando a operação digital.</p></div>
+      <p class="plan-price"><span>R$</span><strong data-price data-monthly="89" data-annual="890">89</strong><small data-cycle>/mês</small></p>
+      <ul><li>Até 40 pacientes ativos</li><li>Planos e cálculos nutricionais</li><li>Agenda, evolução e diário</li><li>Portal do paciente e chat</li></ul>
+      <a class="button button-secondary" href="{{ url_for('auth.register') }}?plano=essencial">Escolher Essencial</a>
+    </article>
+    <article class="pricing-card recommended">
+      <span class="recommended-badge">MAIS ESCOLHIDO</span>
+      <div><span class="plan-label">PROFISSIONAL</span><h3>Cuidado sem limites</h3><p>Para nutricionistas com acompanhamento contínuo.</p></div>
+      <p class="plan-price"><span>R$</span><strong data-price data-monthly="149" data-annual="1490">149</strong><small data-cycle>/mês</small></p>
+      <ul><li>Pacientes ativos ilimitados</li><li>Todos os recursos do Essencial</li><li>Prontuário e relatórios clínicos</li><li>Receitas e inteligência nutricional</li><li>Prioridade no suporte</li></ul>
+      <a class="button button-primary" href="{{ url_for('auth.register') }}?plano=profissional">Escolher Profissional</a>
+    </article>
+    <article class="pricing-card">
+      <div><span class="plan-label">CLÍNICA</span><h3>Operação que cresce</h3><p>Para equipes e unidades com gestão compartilhada.</p></div>
+      <p class="plan-price"><span>R$</span><strong data-price data-monthly="349" data-annual="3490">349</strong><small data-cycle>/mês</small></p>
+      <ul><li>Até 5 profissionais</li><li>Todos os recursos do Profissional</li><li>Gestão de equipe e permissões na v1.7</li><li>Indicadores operacionais na v1.7</li><li>Implantação assistida</li></ul>
+      <a class="button button-secondary" href="{{ url_for('auth.register') }}?plano=clinica">Escolher Clínica</a>
+    </article>
+  </div>
+  <p class="pricing-note">Tabela comercial proposta. A cobrança recorrente e os limites serão ativados somente após a infraestrutura de produção ser validada; o cadastro atual não gera cobrança.</p>
+</section>
+
 <section class="cta-section"><span class="eyebrow">COMECE SUA PRÓXIMA EVOLUÇÃO</span><h2>Nutrição mais próxima.<br>Resultados mais consistentes.</h2><a class="button button-light" href="{{ url_for('auth.register') }}">Criar minha conta {{ icon('arrow-right') }}</a></section>
 {% endblock %}

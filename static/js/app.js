@@ -1,6 +1,33 @@
 (() => {
   "use strict";
 
+  document.querySelectorAll("[data-print-page]").forEach((button) => {
+    button.addEventListener("click", () => window.print());
+  });
+  document.querySelectorAll("[data-reload-page]").forEach((button) => {
+    button.addEventListener("click", () => window.location.reload());
+  });
+
+  const billingToggle = document.querySelector("[data-billing-toggle]");
+  if (billingToggle) {
+    billingToggle.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-billing]");
+      if (!button) return;
+      const period = button.dataset.billing;
+      billingToggle.querySelectorAll("[data-billing]").forEach((option) => {
+        const selected = option === button;
+        option.classList.toggle("active", selected);
+        option.setAttribute("aria-pressed", String(selected));
+      });
+      document.querySelectorAll("[data-price]").forEach((price) => {
+        price.textContent = price.dataset[period];
+      });
+      document.querySelectorAll("[data-cycle]").forEach((cycle) => {
+        cycle.textContent = period === "annual" ? "/ano" : "/mês";
+      });
+    });
+  }
+
   document.querySelectorAll("[data-dismiss]").forEach((button) => {
     button.addEventListener("click", () => button.closest(".flash")?.remove());
   });

@@ -17,8 +17,8 @@
 
 <form method="post" data-plan-form>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <script type="application/json" data-food-catalog>{{ foods_payload|tojson }}</script>
-  <script type="application/json" data-clinical-context>{{ {'allergies': clinical_profile.allergies if clinical_profile else '', 'intolerances': clinical_profile.intolerances if clinical_profile else '', 'restrictions': clinical_profile.restrictions if clinical_profile else ''}|tojson }}</script>
+  <script type="application/json" nonce="{{ g.csp_nonce }}" data-food-catalog>{{ foods_payload|tojson }}</script>
+  <script type="application/json" nonce="{{ g.csp_nonce }}" data-clinical-context>{{ {'allergies': clinical_profile.allergies if clinical_profile else '', 'intolerances': clinical_profile.intolerances if clinical_profile else '', 'restrictions': clinical_profile.restrictions if clinical_profile else ''}|tojson }}</script>
   <datalist id="food-options">{% for food in foods_catalog %}<option value="{{ food.name }}">{{ food.category }} · {{ food.household_measure }}</option>{% endfor %}</datalist>
   <div class="content-grid plan-layout">
     <div>

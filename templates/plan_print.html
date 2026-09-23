@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body class="print-plan">
-  <div class="print-toolbar"><button class="button button-primary" type="button" onclick="window.print()">Imprimir ou salvar em PDF</button></div>
+  <div class="print-toolbar"><button class="button button-primary" type="button" data-print-page>Imprimir ou salvar em PDF</button></div>
   <main class="print-document">
     <header class="print-header"><img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra"><div><span>PLANO ALIMENTAR</span><h1>{{ plan.title }}</h1><p>Emitido em {{ plan.created_at[:10]|brdate }}</p></div></header>
     <section class="print-identification"><div><small>Paciente</small><strong>{{ plan.patient_name }}</strong></div><div><small>Nutricionista</small><strong>{{ plan.nutritionist_name }}</strong><span>{{ plan.nutritionist_crn or 'CRN não informado' }}</span></div></section>
@@ -16,5 +16,6 @@
     {% for meal_name, items in meals.items() %}<section class="print-meal"><h2>{{ meal_name }}</h2>{% for item in items %}<div><span><strong>{{ item.food_name }}</strong><small>{{ item.quantity }}</small></span><span>{{ item.calories|round|int }} kcal · P {{ item.protein|round(1) }} g · C {{ item.carbs|round(1) }} g · G {{ item.fat|round(1) }} g</span></div>{% endfor %}</section>{% endfor %}
     <footer class="print-footer"><p>Plano elaborado por profissional responsável. Valores nutricionais estimados com apoio da TACO 4ª edição — NEPA/UNICAMP.</p><div><span>Assinatura do nutricionista</span></div></footer>
   </main>
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

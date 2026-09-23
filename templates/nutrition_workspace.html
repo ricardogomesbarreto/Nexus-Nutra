@@ -30,7 +30,7 @@
     <div class="panel-header"><div><span class="section-kicker">CÁLCULO AUTOMÁTICO</span><h2>Nova receita</h2><p>O resultado entra no catálogo por 100 g e porção.</p></div><span class="editor-icon">{{ icon('recipe') }}</span></div>
     <form method="post" class="recipe-form" data-recipe-form>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="recipe">
-      <script type="application/json" data-recipe-catalog>{{ foods_payload|tojson }}</script>
+      <script type="application/json" nonce="{{ g.csp_nonce }}" data-recipe-catalog>{{ foods_payload|tojson }}</script>
       <div class="form-grid"><label>Nome da receita<input name="recipe_name" required maxlength="120" placeholder="Ex.: Panqueca de banana"></label><label>Rendimento total (g)<input type="number" name="yield_g" min="1" step="0.1" required></label><label>Porções<input type="number" name="servings" min="1" step="1" value="1" required></label><label>Alergênicos adicionais<input name="recipe_allergens" placeholder="Separados por vírgula"></label></div>
       <div class="recipe-items" data-recipe-items>
         <article data-recipe-row><label>Ingrediente<select name="recipe_food_id[]" required><option value="">Selecione...</option>{% for food in foods %}<option value="{{ food.id }}">{{ food.name }} · {{ food.category }}</option>{% endfor %}</select></label><label>Quantidade (g/ml)<input type="number" name="recipe_amount_g[]" min="0.1" step="0.1" required></label><button type="button" class="icon-button" data-remove-recipe-item aria-label="Remover ingrediente">{{ icon('close') }}</button></article>

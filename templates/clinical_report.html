@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Relatório clínico — {{ patient.name }}{% endblock %}
 {% block content %}
-<div class="print-toolbar"><button class="button button-primary" type="button" onclick="window.print()">Imprimir / salvar PDF</button></div>
+<div class="print-toolbar"><button class="button button-primary" type="button" data-print-page>Imprimir / salvar PDF</button></div>
 <article class="clinical-report">
   <header class="print-header"><img src="{{ url_for('static', filename='img/nexus-nutra-logo-transparent.png') }}" alt="Nexus Nutra"><div><span>RELATÓRIO NUTRICIONAL</span><h1>Prontuário clínico</h1><p>Emitido em {{ generated_on|brdate }}</p></div></header>
   <section class="report-identity"><div><small>PACIENTE</small><strong>{{ patient.name }}</strong><span>{{ patient.email }}{% if patient.birth_date %} · Nascimento {{ patient.birth_date|brdate }}{% endif %}</span></div><div><small>PROFISSIONAL RESPONSÁVEL</small><strong>{{ g.user.name }}</strong><span>{{ g.user.crn or 'CRN não informado' }} · {{ g.user.email }}</span></div></section>

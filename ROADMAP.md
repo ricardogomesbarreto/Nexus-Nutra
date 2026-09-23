@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 23 de setembro de 2026, após a entrega da v1.5.0.
+> Atualizado em 23 de setembro de 2026, após a entrega da v1.5.1.
 
 ## Visão
 
@@ -30,7 +30,9 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
 | Segurança | CSRF, hash de senha, verificação de e-mail, recuperação segura, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
 | Experiência | PWA instalável, navegação inferior móvel, indicador de conexão e fallback offline seguro |
-| Qualidade | Blueprints de autenticação, clínica e nutrição, migrations numeradas, 24 testes, Ruff e GitHub Actions |
+| Comercial | Landing com planos em reais e alternância mensal/anual |
+| Plataforma | Hostinger VPS e PostgreSQL definidos como arquitetura de produção; SQLite restrito ao desenvolvimento/testes |
+| Qualidade | Blueprints de autenticação, clínica e nutrição, migrations numeradas, testes, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
@@ -45,7 +47,7 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | P1 | Diário ainda não registra atividade física nem oferece análise consolidada versus metas do plano | Contexto longitudinal ainda incompleto |
 | P2 | Não há equipe, unidades, permissões granulares, financeiro ou indicadores da clínica | Limita operação multiprofissional |
 | P2 | Não há notificações push, API pública ou integração com calendários e wearables | Experiência ainda parcialmente desconectada |
-| P3 | Não há multiempresa, planos comerciais, cobrança recorrente ou personalização por clínica | Ainda não opera como SaaS |
+| P3 | A tabela comercial existe, mas faltam entitlement, cobrança recorrente, multiempresa e personalização por clínica | Ainda não opera como SaaS |
 
 ## Sequência recomendada
 
@@ -55,10 +57,12 @@ flowchart TD
     S --> B["v1.3 · Prontuário Clínico ✅"]
     B --> C["v1.4 · Inteligência Nutricional ✅"]
     C --> D["v1.5 · Engajamento PWA ✅"]
-    D --> E["v1.6 · Gestão de Clínicas"]
-    E --> F["v1.7 · Integrações"]
-    F --> G["v1.8 · Produção e Escala"]
-    G --> H["v2.0 · Plataforma SaaS"]
+    D --> P["v1.5.1 · Base SaaS Segura ✅"]
+    P --> E["v1.6 · Persistência de Produção"]
+    E --> F["v1.7 · Gestão de Clínicas"]
+    F --> G["v1.8 · Integrações"]
+    G --> I["v1.9 · Escala Operacional"]
+    I --> H["v2.0 · Plataforma SaaS"]
 ~~~
 
 Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem parte da definição de pronto de todas as versões.
@@ -215,7 +219,59 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ---
 
-### v1.6.0 — Gestão de Clínicas
+### v1.5.1 — Base SaaS Segura
+
+**Status:** entregue em 23 de setembro de 2026.
+
+**Objetivo:** registrar a arquitetura comercial e operacional e reduzir riscos antes da migração para produção.
+
+#### Entregas
+
+- Hostinger VPS definida como hospedagem;
+- PostgreSQL definido como banco principal de produção;
+- SQLite limitado a desenvolvimento e testes;
+- landing com planos Essencial, Profissional e Clínica em BRL;
+- ciclos mensal e anual com apresentação acessível;
+- CSP, HSTS, host confiável, proxy controlado e cookies endurecidos;
+- respostas autenticadas sem cache e sessão absoluta de oito horas;
+- senha mínima de 12 caracteres;
+- arquitetura, checklist de lançamento e política de segurança documentados.
+
+#### Limite de segurança
+
+A versão não está liberada para dados clínicos reais enquanto o runtime continuar em SQLite. A migração PostgreSQL e a restauração comprovada são critérios da v1.6.0.
+
+**Complexidade:** média · **Prioridade:** P0
+
+---
+
+### v1.6.0 — Persistência de Produção
+
+**Objetivo:** tornar a aplicação tecnicamente apta para homologação na Hostinger VPS.
+
+#### Entregas
+
+- SQLAlchemy 2 e Alembic;
+- PostgreSQL no desenvolvimento, CI e homologação;
+- migração integral do SQLite com reconciliação;
+- conexão TLS e usuário de menor privilégio;
+- backup criptografado e restauração mensal comprovada;
+- testes de concorrência e isolamento;
+- health checks, logs estruturados e alertas;
+- runbook de deploy e rollback.
+
+#### Definição de pronto
+
+- nenhuma consulta depende de dialeto SQLite;
+- migrations sobem e descem em banco vazio e banco migrado;
+- restore atende RPO/RTO documentados;
+- revisão de segurança concluída antes de dados reais.
+
+**Complexidade:** muito alta · **Prioridade:** P0 antes da comercialização
+
+---
+
+### v1.7.0 — Gestão de Clínicas
 
 **Objetivo:** permitir que consultórios e clínicas gerenciem equipe, operação e resultados.
 
@@ -245,7 +301,7 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ---
 
-### v1.7.0 — Integrações e API
+### v1.8.0 — Integrações e API
 
 **Objetivo:** conectar o Nexus Nutra ao ecossistema usado por profissionais e pacientes.
 
@@ -273,13 +329,13 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ---
 
-### v1.8.0 — Produção, Observabilidade e Escala
+### v1.9.0 — Observabilidade e Escala
 
 **Objetivo:** preparar operação confiável com usuários reais e crescimento controlado.
 
 #### Entregas
 
-- PostgreSQL como banco principal;
+- otimização e alta disponibilidade do PostgreSQL;
 - cache e filas de tarefas;
 - armazenamento de anexos compatível com objetos;
 - execução em contêiner;
