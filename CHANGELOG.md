@@ -6,9 +6,31 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 
 ### Planejado
 
-- jornada móvel PWA, check-ins e notificações consentidas;
-- diário enriquecido com fotos, sintomas, humor e hidratação;
+- organizações, unidades, equipe e permissões granulares;
+- notificações consentidas e lembretes externos;
 - testes de navegador para os fluxos críticos de identidade e agenda.
+
+## [1.5.0] — 2026-09-23 — Jornada do Paciente e PWA
+
+### Adicionado
+
+- Progressive Web App instalável com manifesto, ícone autoral e atalhos;
+- service worker limitado ao shell público, com fallback offline seguro;
+- navegação inferior para as principais tarefas no celular;
+- diário alimentar com foto, humor, saciedade, hidratação e sintomas;
+- check-in semanal de energia, sono, confiança, avanços e dificuldades;
+- metas de hábitos criadas pelo nutricionista e registradas pelo paciente;
+- comentários profissionais vinculados às refeições;
+- painel de jornada e resumo semanal no painel do paciente;
+- migration v6 e três novos cenários, elevando a suíte para 24 testes.
+
+### Segurança e privacidade
+
+- fotos recebem nomes internos aleatórios e validação de extensão, assinatura e tamanho;
+- acesso às fotos é restrito ao paciente e ao nutricionista vinculado;
+- respostas profissionais e criação de hábitos são auditadas;
+- o service worker não armazena páginas autenticadas nem conteúdo clínico;
+- respostas de imagens privadas usam `Cache-Control: private, no-store`.
 
 ## [1.4.0] — 2026-09-22 — Inteligência Nutricional Brasileira
 

@@ -13,7 +13,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-3-197A50?logo=sqlite&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.4.0-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.5.0-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -25,17 +25,18 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. Antes de uso assistencial em produção, valide requisitos jurídicos, LGPD, retenção e certificações aplicáveis ao seu contexto.
 
-## Novidades da v1.4.0 — Inteligência Nutricional Brasileira
+## Novidades da v1.5.0 — Jornada do Paciente e PWA
 
-- biblioteca original de ícones SVG, criada para a identidade Nexus Nutra;
-- nova logomarca transparente aplicada à interface, relatórios e documentação;
-- alimentos personalizados, exclusivos para cada nutricionista;
-- receitas com ingredientes, rendimento e cálculo nutricional automático no servidor;
-- análise de dez indicadores: energia, macronutrientes, fibras, cálcio, ferro, sódio, gordura saturada e açúcares;
-- alertas de alergênicos e conflitos com alergias, intolerâncias e restrições da anamnese;
-- planos alimentares revisionados e numerados sem perder o histórico;
-- espaço “Inteligência nutricional” para gerir preparações e catálogo profissional;
-- migration v5 compatível com instalações existentes e 21 cenários automatizados.
+- Progressive Web App instalável com ícone próprio e atalhos de acesso;
+- navegação inferior otimizada para celulares e indicador de conectividade;
+- shell offline seguro, sem armazenar planos, diário ou dados clínicos no dispositivo;
+- diário enriquecido com foto, humor, fome, saciedade, água e sintomas;
+- fotos privadas, validadas e acessíveis somente ao paciente e ao nutricionista vinculado;
+- metas de hábitos configuradas pelo profissional e atualizadas pelo paciente;
+- check-in semanal de energia, sono, confiança, avanços e dificuldades;
+- comentários do nutricionista diretamente nos registros do diário;
+- painel de jornada com indicadores acolhedores e sem linguagem punitiva;
+- migration v6 compatível com instalações existentes e 24 cenários automatizados.
 
 ## Funcionalidades
 
@@ -57,12 +58,14 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 - agenda para consultas presenciais e online, com disponibilidade, bloqueios e controle de conflitos;
 - painel “Hoje”, estados da consulta, histórico, lembretes internos e exportação ICS;
 - chat contextualizado com cada paciente.
+- criação de metas de hábitos e comentários profissionais no diário do paciente;
 
 ### Para pacientes
 
 - painel pessoal com plano atual e próximos compromissos;
 - visualização clara do plano por refeições e alimentos;
-- diário alimentar com adesão e nível de fome;
+- diário com foto, adesão, fome, humor, saciedade, hidratação, sintomas e orientações;
+- jornada de hábitos e check-in semanal de bem-estar;
 - histórico de peso com gráfico de evolução;
 - agenda com confirmação, cancelamento, reagendamento e acesso seguro à consulta online;
 - canal direto de mensagens com o nutricionista.
@@ -70,6 +73,7 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 ### Experiência e engenharia
 
 - interface própria, responsiva e acessível em português do Brasil;
+- PWA instalável, navegação móvel dedicada e fallback offline sem dados sensíveis;
 - biblioteca autoral de ícones SVG, leve, consistente e sem dependências externas;
 - senhas protegidas com o mecanismo seguro do Werkzeug;
 - proteção CSRF em todas as operações de escrita;
@@ -132,6 +136,9 @@ Para os fluxos de identidade, configure também `PUBLIC_BASE_URL`, `SMTP_HOST`,
 `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` e `MAIL_FROM`. Em produção,
 use `MAIL_SUPPRESS_SEND=0` e mantenha `REQUIRE_EMAIL_VERIFICATION=1`.
 
+Defina `CLINICAL_UPLOAD_FOLDER` e `DIARY_UPLOAD_FOLDER` em diretórios privados,
+graváveis pela aplicação e fora de qualquer servidor público de arquivos.
+
 ### 3. Iniciar
 
 ```bash
@@ -165,11 +172,17 @@ Nexus-Nutra/
 ├── static/
 │   ├── css/app.css
 │   ├── img/
+│   │   ├── nexus-app-icon.svg
 │   │   ├── nexus-icons.svg
 │   │   └── nexus-nutra-logo-transparent.png
-│   └── js/app.js
+│   ├── js/
+│   │   ├── app.js
+│   │   └── service-worker.js
+│   └── manifest.webmanifest
 ├── templates/
 │   ├── _icons.html
+│   ├── journey.html
+│   ├── offline.html
 │   └── nutrition_workspace.html
 ├── tests/
 ├── docs/
@@ -202,7 +215,7 @@ flowchart LR
 | v1.2.1 | Identidade Segura ✅ | recuperação de senha, verificação de e-mail e SMTP |
 | v1.3.0 | Prontuário Clínico ✅ | anamnese, antropometria, evolução, anexos e consentimentos |
 | v1.4.0 | Inteligência Nutricional ✅ | receitas, alimentos personalizados, alertas, nutrientes e planos versionados |
-| v1.5.0 | Jornada do Paciente | PWA, notificações, fotos, hábitos e check-ins |
+| v1.5.0 | Jornada do Paciente ✅ | PWA, fotos privadas, hábitos, check-ins e comentários |
 | v1.6.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |
 | v1.7.0 | Integrações | API, calendários, videoconferência, webhooks e wearables |
 | v1.8.0 | Produção e Escala | PostgreSQL, filas, backups, observabilidade e infraestrutura |

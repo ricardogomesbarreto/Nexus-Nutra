@@ -132,8 +132,68 @@ CREATE TABLE IF NOT EXISTS food_diary (
     description TEXT NOT NULL,
     adherence INTEGER NOT NULL DEFAULT 1,
     hunger INTEGER,
+    mood INTEGER,
+    satiety INTEGER,
+    water_ml INTEGER NOT NULL DEFAULT 0,
+    symptoms TEXT,
+    photo_stored_name TEXT,
+    photo_mime TEXT,
+    photo_size_bytes INTEGER,
     recorded_at TEXT NOT NULL,
     FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS weekly_checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    week_start TEXT NOT NULL,
+    energy INTEGER NOT NULL CHECK (energy BETWEEN 1 AND 5),
+    sleep_quality INTEGER NOT NULL CHECK (sleep_quality BETWEEN 1 AND 5),
+    confidence INTEGER NOT NULL CHECK (confidence BETWEEN 1 AND 5),
+    wins TEXT,
+    challenges TEXT,
+    support_needed TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (patient_id, week_start)
+);
+
+CREATE TABLE IF NOT EXISTS habit_goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nutritionist_id INTEGER NOT NULL,
+    patient_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    target_value REAL NOT NULL CHECK (target_value > 0),
+    unit TEXT NOT NULL,
+    frequency TEXT NOT NULL DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS habit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_id INTEGER NOT NULL,
+    patient_id INTEGER NOT NULL,
+    value REAL NOT NULL CHECK (value >= 0),
+    recorded_on TEXT NOT NULL,
+    note TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (goal_id) REFERENCES habit_goals(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (goal_id, recorded_on)
+);
+
+CREATE TABLE IF NOT EXISTS diary_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    diary_id INTEGER NOT NULL,
+    nutritionist_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (diary_id) REFERENCES food_diary(id) ON DELETE CASCADE,
+    FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS appointments (
@@ -358,6 +418,10 @@ CREATE TABLE IF NOT EXISTS recipe_items (
 CREATE INDEX IF NOT EXISTS idx_plans_patient ON meal_plans(patient_id, active);
 CREATE INDEX IF NOT EXISTS idx_weight_patient_date ON weight_records(patient_id, recorded_on);
 CREATE INDEX IF NOT EXISTS idx_diary_patient_date ON food_diary(patient_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_checkins_patient_week ON weekly_checkins(patient_id, week_start DESC);
+CREATE INDEX IF NOT EXISTS idx_habit_goals_patient_active ON habit_goals(patient_id, active);
+CREATE INDEX IF NOT EXISTS idx_habit_logs_patient_date ON habit_logs(patient_id, recorded_on DESC);
+CREATE INDEX IF NOT EXISTS idx_diary_comments_entry ON diary_comments(diary_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(starts_at);
 CREATE INDEX IF NOT EXISTS idx_appointments_professional_start ON appointments(nutritionist_id, starts_at, status);
 CREATE INDEX IF NOT EXISTS idx_appointment_history_appointment ON appointment_history(appointment_id, created_at);

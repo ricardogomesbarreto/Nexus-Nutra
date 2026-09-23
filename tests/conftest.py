@@ -13,6 +13,7 @@ def app(tmp_path):
             "SECRET_KEY": "test-secret",
             "DATABASE": str(tmp_path / "test.db"),
             "CLINICAL_UPLOAD_FOLDER": str(tmp_path / "clinical_uploads"),
+            "DIARY_UPLOAD_FOLDER": str(tmp_path / "diary_uploads"),
             "MAIL_SUPPRESS_SEND": True,
             "PUBLIC_BASE_URL": "https://nutra.test",
             "REQUIRE_EMAIL_VERIFICATION": False,

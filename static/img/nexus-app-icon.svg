@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nexus Nutra">
+  <defs>
+    <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8e449"/><stop offset="1" stop-color="#68be2f"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#268b4b"/><stop offset="1" stop-color="#0d492d"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#101a15"/>
+  <path d="M256 72 390 149l-61 36-73-42-73 42-61-36L256 72Z" fill="url(#lime)"/>
+  <path d="m412 188-1 155-133 77v-72l72-42v-84l62-34Z" fill="url(#green)"/>
+  <path d="m234 348-1 72-133-77V188l62 34v84l72 42Z" fill="url(#lime)"/>
+  <path d="M100 169 234 92v72l-72 42-62-37Z" fill="url(#green)"/>
+  <path d="m278 92 134 77-62 37-72-42V92Z" fill="url(#lime)" opacity=".92"/>
+  <path d="m256 369 62-36 62 36-124 71-124-71 62-36 62 36Z" fill="url(#lime)"/>
+</svg>

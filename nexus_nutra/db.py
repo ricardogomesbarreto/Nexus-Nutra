@@ -354,12 +354,93 @@ def _migration_005_nutrition_intelligence(db: sqlite3.Connection) -> None:
     db.execute("UPDATE foods SET allergens = 'ovo' WHERE name = 'Ovo de galinha, cozido'")
 
 
+def _migration_006_patient_journey(db: sqlite3.Connection) -> None:
+    """PWA, diário enriquecido, hábitos e check-ins da v1.5.0."""
+    for column in (
+        "mood INTEGER",
+        "satiety INTEGER",
+        "water_ml INTEGER NOT NULL DEFAULT 0",
+        "symptoms TEXT",
+        "photo_stored_name TEXT",
+        "photo_mime TEXT",
+        "photo_size_bytes INTEGER",
+    ):
+        _add_column(db, "food_diary", column)
+
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS weekly_checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            week_start TEXT NOT NULL,
+            energy INTEGER NOT NULL CHECK (energy BETWEEN 1 AND 5),
+            sleep_quality INTEGER NOT NULL CHECK (sleep_quality BETWEEN 1 AND 5),
+            confidence INTEGER NOT NULL CHECK (confidence BETWEEN 1 AND 5),
+            wins TEXT,
+            challenges TEXT,
+            support_needed TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (patient_id, week_start)
+        );
+
+        CREATE TABLE IF NOT EXISTS habit_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nutritionist_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            target_value REAL NOT NULL CHECK (target_value > 0),
+            unit TEXT NOT NULL,
+            frequency TEXT NOT NULL DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly')),
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS habit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            goal_id INTEGER NOT NULL,
+            patient_id INTEGER NOT NULL,
+            value REAL NOT NULL CHECK (value >= 0),
+            recorded_on TEXT NOT NULL,
+            note TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (goal_id) REFERENCES habit_goals(id) ON DELETE CASCADE,
+            FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (goal_id, recorded_on)
+        );
+
+        CREATE TABLE IF NOT EXISTS diary_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            diary_id INTEGER NOT NULL,
+            nutritionist_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (diary_id) REFERENCES food_diary(id) ON DELETE CASCADE,
+            FOREIGN KEY (nutritionist_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_checkins_patient_week
+            ON weekly_checkins(patient_id, week_start DESC);
+        CREATE INDEX IF NOT EXISTS idx_habit_goals_patient_active
+            ON habit_goals(patient_id, active);
+        CREATE INDEX IF NOT EXISTS idx_habit_logs_patient_date
+            ON habit_logs(patient_id, recorded_on DESC);
+        CREATE INDEX IF NOT EXISTS idx_diary_comments_entry
+            ON diary_comments(diary_id, created_at);
+        """
+    )
+
+
 MIGRATIONS = (
     (1, "v1.1.0_catalogo_inteligente", _migration_001_catalog),
     (2, "v1.2.0_agenda_segura", _migration_002_secure_agenda),
     (3, "v1.2.1_identidade_segura", _migration_003_secure_identity),
     (4, "v1.3.0_prontuario_clinico", _migration_004_clinical_record),
     (5, "v1.4.0_inteligencia_nutricional", _migration_005_nutrition_intelligence),
+    (6, "v1.5.0_jornada_do_paciente", _migration_006_patient_journey),
 )
 
 

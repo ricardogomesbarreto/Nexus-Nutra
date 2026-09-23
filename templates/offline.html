@@ -1,0 +1,21 @@
+{% from '_icons.html' import icon %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d2c">
+  <title>Sem conexão — Nexus Nutra</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/nexus-app-icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="public-shell">
+  <main><section class="offline-state">
+    <img src="{{ url_for('static', filename='img/nexus-app-icon.svg') }}" alt="Nexus Nutra">
+    <span class="eyebrow">MODO OFFLINE</span>
+    <h1>Você está sem conexão.</h1>
+    <p>Por privacidade, planos, diário e dados clínicos não ficam armazenados neste dispositivo. Reconecte-se para acessar sua jornada com segurança.</p>
+    <button class="button button-primary" type="button" onclick="window.location.reload()">{{ icon('refresh') }} Tentar novamente</button>
+  </section></main>
+</body>
+</html>

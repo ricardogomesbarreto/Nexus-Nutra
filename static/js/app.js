@@ -14,6 +14,36 @@
     }
   });
 
+  if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js"));
+  }
+
+  const installButton = document.querySelector("[data-install-app]");
+  let installPrompt;
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    installButton?.classList.remove("hidden");
+  });
+  installButton?.addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = undefined;
+    installButton.classList.add("hidden");
+  });
+  window.addEventListener("appinstalled", () => installButton?.classList.add("hidden"));
+
+  const connectivity = document.querySelector("[data-connectivity-status]");
+  const syncConnectivity = () => {
+    if (!connectivity) return;
+    connectivity.classList.toggle("offline", !navigator.onLine);
+    connectivity.lastChild.textContent = navigator.onLine ? " Atendimento conectado" : " Sem conexão";
+  };
+  window.addEventListener("online", syncConnectivity);
+  window.addEventListener("offline", syncConnectivity);
+  syncConnectivity();
+
   const roleForm = document.querySelector("[data-role-form]");
   if (roleForm) {
     const syncRole = () => {

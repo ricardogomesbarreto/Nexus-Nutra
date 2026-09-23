@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Nexus Nutra — gestão nutricional conectada para nutricionistas e pacientes.">
   <meta name="theme-color" content="#1c7c54">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/nexus-app-icon.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/nexus-app-icon.svg') }}">
   <title>{% block title %}Nexus Nutra{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,6 +32,7 @@
           <a class="nav-link {{ 'active' if request.endpoint == 'main.food_catalog' }}" href="{{ url_for('main.food_catalog') }}"><span>{{ icon('food') }}</span> Catálogo alimentar</a>
           <a class="nav-link {{ 'active' if request.blueprint == 'nutrition' }}" href="{{ url_for('nutrition.workspace') }}"><span>{{ icon('spark') }}</span> Inteligência nutricional</a>
         {% else %}
+          <a class="nav-link {{ 'active' if request.endpoint == 'main.journey' }}" href="{{ url_for('main.journey') }}"><span>{{ icon('journey') }}</span> Minha jornada</a>
           <a class="nav-link {{ 'active' if request.endpoint == 'main.diary' }}" href="{{ url_for('main.diary') }}"><span>{{ icon('diary') }}</span> Diário alimentar</a>
           <a class="nav-link {{ 'active' if request.endpoint == 'main.progress' }}" href="{{ url_for('main.progress') }}"><span>{{ icon('trend') }}</span> Evolução</a>
         {% endif %}
@@ -41,9 +47,10 @@
     </aside>
     <div class="app-area">
       <header class="topbar">
-        <button class="menu-toggle" type="button" data-menu-toggle aria-label="Abrir menu">☰</button>
-        <div class="topbar-title"><span class="status-dot"></span> Atendimento conectado</div>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-label="Abrir menu">{{ icon('menu') }}</button>
+        <div class="topbar-title" data-connectivity-status><span class="status-dot"></span> Atendimento conectado</div>
         <div class="topbar-actions">
+          <button class="icon-button install-app hidden" type="button" data-install-app aria-label="Instalar Nexus Nutra">{{ icon('download') }}</button>
           <a class="icon-button" href="{{ url_for('main.chat') }}" aria-label="Mensagens">{{ icon('message') }}</a>
           <form method="post" action="{{ url_for('auth.logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -55,6 +62,12 @@
         {% include '_flashes.html' %}
         {% block content %}{% endblock %}
       </main>
+      <nav class="mobile-bottom-nav" aria-label="Navegação móvel">
+        <a class="{{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}">{{ icon('dashboard') }}<span>Início</span></a>
+        {% if g.user.role == 'patient' %}<a class="{{ 'active' if request.endpoint == 'main.journey' }}" href="{{ url_for('main.journey') }}">{{ icon('journey') }}<span>Jornada</span></a><a class="{{ 'active' if request.endpoint == 'main.diary' }}" href="{{ url_for('main.diary') }}">{{ icon('diary') }}<span>Diário</span></a>{% else %}<a class="{{ 'active' if request.endpoint == 'main.patients' }}" href="{{ url_for('main.patients') }}">{{ icon('patients') }}<span>Pacientes</span></a><a class="{{ 'active' if request.blueprint == 'nutrition' }}" href="{{ url_for('nutrition.workspace') }}">{{ icon('spark') }}<span>Nutrição</span></a>{% endif %}
+        <a class="{{ 'active' if request.endpoint == 'main.agenda' }}" href="{{ url_for('main.agenda') }}">{{ icon('calendar') }}<span>Agenda</span></a>
+        <a class="{{ 'active' if request.endpoint == 'main.chat' }}" href="{{ url_for('main.chat') }}">{{ icon('message') }}<span>Chat</span></a>
+      </nav>
     </div>
   {% else %}
     <header class="public-header">

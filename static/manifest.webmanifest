@@ -1,0 +1,26 @@
+{
+  "name": "Nexus Nutra — Jornada Nutricional",
+  "short_name": "Nexus Nutra",
+  "description": "Plano alimentar, diário, hábitos, evolução e comunicação com seu nutricionista.",
+  "lang": "pt-BR",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f7f5",
+  "theme_color": "#123d2c",
+  "categories": ["health", "lifestyle", "medical"],
+  "icons": [
+    {
+      "src": "/static/img/nexus-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {"name": "Registrar refeição", "url": "/diario", "icons": [{"src": "/static/img/nexus-app-icon.svg", "sizes": "any", "type": "image/svg+xml"}]},
+    {"name": "Minha jornada", "url": "/jornada", "icons": [{"src": "/static/img/nexus-app-icon.svg", "sizes": "any", "type": "image/svg+xml"}]},
+    {"name": "Agenda", "url": "/agenda", "icons": [{"src": "/static/img/nexus-app-icon.svg", "sizes": "any", "type": "image/svg+xml"}]}
+  ]
+}

@@ -347,7 +347,7 @@ def test_versioned_migrations_create_security_foundation(app):
             row["name"] for row in db.execute("PRAGMA table_info(appointments)")
         }
         user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
-        assert versions == {1, 2, 3, 4, 5}
+        assert versions == {1, 2, 3, 4, 5, 6}
         assert {"duration_minutes", "reminder_minutes", "cancellation_reason"} <= appointment_columns
         assert {"failed_login_attempts", "locked_until", "session_version"} <= user_columns
         assert db.execute(
@@ -729,6 +729,8 @@ def test_clinical_notes_consents_report_and_access_control(app, client, token):
     with client.session_transaction() as session:
         patient_token = session["csrf_token"]
     login(client, patient_token, "joao@example.com", "senha-paciente")
+    with client.session_transaction() as session:
+        patient_token = session["csrf_token"]
     assert client.get(path).status_code == 403
     assert client.get(path + "/relatorio").status_code == 403
 
@@ -899,3 +901,135 @@ def test_plan_alerts_allergen_and_versions_revision(app, client, token):
         assert revision["revision_of"] == first_id
         assert revision["version_number"] == 2
         assert revision["sodium"] >= 0
+
+
+def test_pwa_shell_is_installable_and_keeps_health_data_out_of_cache(client):
+    manifest = client.get("/static/manifest.webmanifest")
+    worker = client.get("/service-worker.js")
+    offline = client.get("/offline")
+
+    assert manifest.status_code == 200
+    assert b'"display": "standalone"' in manifest.data
+    assert b"nexus-app-icon.svg" in manifest.data
+    assert worker.status_code == 200
+    assert worker.headers["Service-Worker-Allowed"] == "/"
+    assert b"/offline" in worker.data
+    assert b"/diario" not in worker.data
+    assert "dados clínicos não ficam armazenados".encode() in offline.data
+
+
+def test_patient_enriched_diary_photo_checkin_and_habit_journey(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    client.post(
+        f"/pacientes/{patient_id}/habitos",
+        data={
+            "csrf_token": logged_token,
+            "title": "Hidratação consciente",
+            "target_value": "2000",
+            "unit": "ml",
+            "frequency": "daily",
+        },
+    )
+    client.post("/logout", data={"csrf_token": logged_token})
+    client.get("/login")
+    with client.session_transaction() as session:
+        patient_token = session["csrf_token"]
+    login(client, patient_token, "joao@example.com", "senha-paciente")
+    with client.session_transaction() as session:
+        patient_token = session["csrf_token"]
+
+    response = client.post(
+        "/diario",
+        data={
+            "csrf_token": patient_token,
+            "meal_name": "Almoço",
+            "description": "Arroz, feijão, salada e frango.",
+            "adherence": "1",
+            "hunger": "4",
+            "mood": "5",
+            "satiety": "4",
+            "water_ml": "500",
+            "symptoms": "Boa disposição após a refeição.",
+            "photo": (BytesIO(b"\xff\xd8\xff\xe0meal-photo"), "almoco.jpg"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"Humor 5/5" in response.data
+    assert b"500 ml" in response.data
+
+    with app.app_context():
+        db = get_db()
+        entry = db.execute("SELECT * FROM food_diary").fetchone()
+        goal = db.execute("SELECT * FROM habit_goals").fetchone()
+        assert entry["photo_stored_name"].endswith(".jpg")
+        assert entry["mood"] == 5
+        assert goal["patient_id"] == patient_id
+
+    photo = client.get(f"/diario/{entry['id']}/foto")
+    assert photo.status_code == 200
+    assert photo.headers["Cache-Control"] == "private, no-store"
+    assert photo.data.startswith(b"\xff\xd8\xff")
+
+    client.post(
+        f"/jornada/habitos/{goal['id']}",
+        data={"csrf_token": patient_token, "value": "1500", "note": "Ao longo do dia"},
+    )
+    checkin = client.post(
+        "/jornada/check-in",
+        data={
+            "csrf_token": patient_token,
+            "energy": "4",
+            "sleep_quality": "3",
+            "confidence": "5",
+            "wins": "Consegui organizar os lanches.",
+            "challenges": "Horários corridos.",
+            "support_needed": "Sugestões de lanches rápidos.",
+        },
+        follow_redirects=True,
+    )
+    assert b"Check-in semanal salvo" in checkin.data
+    assert b"75%" in checkin.data
+    with app.app_context():
+        db = get_db()
+        assert db.execute("SELECT value FROM habit_logs").fetchone()[0] == 1500
+        assert db.execute("SELECT confidence FROM weekly_checkins").fetchone()[0] == 5
+
+
+def test_nutritionist_comments_on_diary_and_patient_receives_it(app, client, token):
+    logged_token, _nutritionist_id, patient_id = create_professional_with_patient(
+        app, client, token
+    )
+    with app.app_context():
+        db = get_db()
+        entry_id = db.execute(
+            """INSERT INTO food_diary
+               (patient_id, meal_name, description, adherence, hunger, mood, satiety,
+                water_ml, recorded_at)
+               VALUES (?, 'Jantar', 'Sopa de legumes', 1, 3, 4, 4, 300, '2026-09-22T19:00')""",
+            (patient_id,),
+        ).lastrowid
+        db.commit()
+
+    professional_view = client.get(f"/pacientes/{patient_id}")
+    assert b"Sopa de legumes" in professional_view.data
+    response = client.post(
+        f"/diario/{entry_id}/comentarios",
+        data={
+            "csrf_token": logged_token,
+            "content": "Excelente variedade. Observe como ficou a saciedade.",
+        },
+        follow_redirects=True,
+    )
+    assert "Comentário enviado".encode() in response.data
+
+    client.post("/logout", data={"csrf_token": logged_token})
+    client.get("/login")
+    with client.session_transaction() as session:
+        patient_token = session["csrf_token"]
+    login(client, patient_token, "joao@example.com", "senha-paciente")
+    diary = client.get("/diario")
+    assert b"Excelente variedade" in diary.data
+    assert b"Marina Nutricionista" in diary.data

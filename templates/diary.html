@@ -1,9 +1,44 @@
 {% extends 'base.html' %}
 {% block title %}Diário alimentar — Nexus Nutra{% endblock %}
 {% block content %}
-<header class="page-header"><span class="eyebrow">ACOMPANHAMENTO DIÁRIO</span><h1>Diário alimentar</h1><p>Registre o que comeu e como se sentiu. Não precisa ser perfeito, precisa ser verdadeiro.</p></header>
-<div class="content-grid two-one">
-  <section class="panel"><div class="panel-header"><div><h2>Meus registros</h2><p>Últimas refeições adicionadas.</p></div></div>{% if entries %}<div class="diary-list">{% for item in entries %}<article><div class="diary-date"><b>{{ item.recorded_at[8:10] }}</b><small>{{ item.recorded_at[5:7] }}/{{ item.recorded_at[:4] }}</small></div><div class="grow"><div class="diary-title"><strong>{{ item.meal_name }}</strong><span class="badge badge-{{ 'success' if item.adherence else 'warning' }}">{{ 'Dentro do plano' if item.adherence else 'Fora do plano' }}</span></div><p>{{ item.description }}</p><small>{{ item.recorded_at|brdate }} · Nível de fome: {{ item.hunger or '—' }}/5</small></div></article>{% endfor %}</div>{% else %}<div class="empty-state"><span>{{ icon('diary') }}</span><h2>Seu diário começa aqui</h2><p>Adicione a primeira refeição usando o formulário ao lado.</p></div>{% endif %}</section>
-  <aside class="panel sticky-panel"><div class="panel-header"><div><h2>Registrar refeição</h2><p>Conte como foi.</p></div></div><form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Refeição<select name="meal_name" required><option value="">Selecione</option><option>Café da manhã</option><option>Lanche da manhã</option><option>Almoço</option><option>Lanche da tarde</option><option>Jantar</option><option>Ceia</option><option>Outro</option></select></label><label>Data e horário<input type="datetime-local" name="recorded_at"></label><label>O que você consumiu?<textarea name="description" rows="4" required placeholder="Descreva alimentos e quantidades..."></textarea></label><label>Nível de fome <span class="range-value" data-range-value>3</span><input type="range" name="hunger" min="1" max="5" value="3" data-range></label><label class="check-field"><input type="checkbox" name="adherence" value="1" checked><span>Esta refeição seguiu o plano</span></label><button class="button button-primary button-block" type="submit">Salvar no diário</button></form></aside>
+<header class="page-header with-action diary-hero"><div><span class="eyebrow">ACOMPANHAMENTO DIÁRIO · V1.5</span><h1>Diário de alimentação e bem-estar</h1><p>Registre o que aconteceu de verdade. Contexto ajuda mais que perfeição.</p></div><a class="button button-secondary" href="{{ url_for('main.journey') }}">{{ icon('journey') }} Minha jornada</a></header>
+
+<section class="diary-summary">
+  <article><span>{{ icon('diary') }}</span><div><strong>{{ week_summary.entries }}</strong><small>refeições em 7 dias</small></div></article>
+  <article><span>{{ icon('water') }}</span><div><strong>{{ '%.1f'|format(week_summary.water_ml / 1000) }} L</strong><small>hidratação registrada</small></div></article>
+  <article><span>{{ icon('check') }}</span><div><strong>{{ week_summary.adherence|round|int }}%</strong><small>aderência informada</small></div></article>
+</section>
+
+<div class="content-grid diary-layout-v15">
+  <section class="panel">
+    <div class="panel-header"><div><h2>Meus registros</h2><p>Refeições e contexto compartilhados com seu nutricionista.</p></div></div>
+    {% if entries %}<div class="diary-feed">{% for item in entries %}<article class="diary-entry">
+      {% if item.photo_stored_name %}<a class="diary-photo" href="{{ url_for('main.diary_photo', entry_id=item.id) }}" target="_blank"><img src="{{ url_for('main.diary_photo', entry_id=item.id) }}" alt="Foto da refeição {{ item.meal_name }}" loading="lazy"></a>{% endif %}
+      <div class="diary-entry-body">
+        <div class="diary-title"><div><small>{{ item.recorded_at|brdate }}</small><h3>{{ item.meal_name }}</h3></div><span class="badge badge-{{ 'success' if item.adherence else 'warning' }}">{{ 'Dentro do plano' if item.adherence else 'Fora do plano' }}</span></div>
+        <p>{{ item.description }}</p>
+        <div class="wellbeing-chips"><span>{{ icon('food') }} Fome {{ item.hunger or '—' }}/5</span><span>{{ icon('mood') }} Humor {{ item.mood or '—' }}/5</span><span>{{ icon('check') }} Saciedade {{ item.satiety or '—' }}/5</span>{% if item.water_ml %}<span>{{ icon('water') }} {{ item.water_ml }} ml</span>{% endif %}</div>
+        {% if item.symptoms %}<div class="symptom-note"><strong>Sintomas ou observações</strong><p>{{ item.symptoms }}</p></div>{% endif %}
+        {% for comment in comments_by_diary.get(item.id, []) %}<div class="professional-comment"><span>{{ icon('message') }}</span><div><strong>{{ comment.nutritionist_name }}</strong><p>{{ comment.content }}</p><small>{{ comment.created_at|brdate }}</small></div></div>{% endfor %}
+      </div>
+    </article>{% endfor %}</div>{% else %}<div class="empty-state"><span>{{ icon('diary') }}</span><h2>Seu diário começa aqui</h2><p>Adicione a primeira refeição usando o formulário ao lado.</p></div>{% endif %}
+  </section>
+
+  <aside class="panel sticky-panel diary-composer"><div class="panel-header"><div><span class="section-kicker">NOVO REGISTRO</span><h2>Como foi esta refeição?</h2><p>Leva menos de um minuto.</p></div></div><form method="post" enctype="multipart/form-data" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Refeição<select name="meal_name" required><option value="">Selecione</option><option>Café da manhã</option><option>Lanche da manhã</option><option>Almoço</option><option>Lanche da tarde</option><option>Jantar</option><option>Ceia</option><option>Outro</option></select></label>
+    <label>Data e horário<input type="datetime-local" name="recorded_at"></label>
+    <label>O que você consumiu?<textarea name="description" rows="4" required maxlength="2000" placeholder="Descreva alimentos e quantidades..."></textarea></label>
+    <label class="photo-field"><span>{{ icon('photo') }} Foto opcional</span><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG ou WebP · até 5 MB</small></label>
+    <div class="wellbeing-fields">
+      <label>Fome <span data-range-value>3</span><input type="range" name="hunger" min="1" max="5" value="3" data-range></label>
+      <label>Saciedade <span data-range-value>3</span><input type="range" name="satiety" min="1" max="5" value="3" data-range></label>
+      <label>Humor <span data-range-value>3</span><input type="range" name="mood" min="1" max="5" value="3" data-range></label>
+    </div>
+    <label>Água junto ou desde o último registro (ml)<input type="number" name="water_ml" min="0" max="10000" step="50" value="0"></label>
+    <label>Sintomas ou observações<textarea name="symptoms" rows="3" maxlength="500" placeholder="Ex.: desconforto, ansiedade, pressa, boa disposição..."></textarea></label>
+    <label class="check-field"><input type="checkbox" name="adherence" value="1" checked><span>Esta refeição seguiu o plano</span></label>
+    <button class="button button-primary button-block" type="submit">{{ icon('check') }} Salvar no diário</button>
+  </form></aside>
 </div>
 {% endblock %}

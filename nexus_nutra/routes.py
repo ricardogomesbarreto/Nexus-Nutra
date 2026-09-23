@@ -7,21 +7,25 @@ import sqlite3
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
+from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import (
     Blueprint,
     Response,
     abort,
+    current_app,
     flash,
     g,
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
 from .db import get_db
 
@@ -54,6 +58,12 @@ APPOINTMENT_TRANSITIONS = {
     "no_show": set(),
 }
 WEEKDAYS = ("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
+ALLOWED_DIARY_PHOTOS = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 def _csrf_token() -> str:
@@ -319,6 +329,23 @@ def index():
     return render_template("index.html")
 
 
+@bp.get("/offline")
+def offline():
+    return render_template("offline.html")
+
+
+@bp.get("/service-worker.js")
+def service_worker():
+    response = send_from_directory(
+        Path(current_app.static_folder) / "js",
+        "service-worker.js",
+        mimetype="application/javascript",
+    )
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @bp.post("/perfil/sessoes/revogar")
 @login_required
 def revoke_other_sessions():
@@ -399,12 +426,23 @@ def dashboard():
         "SELECT COUNT(*) AS total FROM food_diary WHERE patient_id = ? AND date(recorded_at) = date('now', 'localtime')",
         (g.user["id"],),
     ).fetchone()["total"]
+    active_habits = db.execute(
+        "SELECT COUNT(*) AS total FROM habit_goals WHERE patient_id = ? AND active = 1",
+        (g.user["id"],),
+    ).fetchone()["total"]
+    week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+    checkin_done = db.execute(
+        "SELECT 1 FROM weekly_checkins WHERE patient_id = ? AND week_start = ?",
+        (g.user["id"], week_start),
+    ).fetchone() is not None
     return render_template(
         "dashboard_patient.html",
         plan=plan,
         weights=list(reversed(weights)),
         appointments=appointments,
         diary_today=diary_today,
+        active_habits=active_habits,
+        checkin_done=checkin_done,
     )
 
 
@@ -516,8 +554,36 @@ def patient_detail(patient_id: int):
         "SELECT * FROM food_diary WHERE patient_id = ? ORDER BY recorded_at DESC LIMIT 8",
         (patient_id,),
     ).fetchall()
+    habits = db.execute(
+        """SELECT hg.*,
+                  COALESCE((SELECT value FROM habit_logs hl WHERE hl.goal_id = hg.id
+                            ORDER BY recorded_on DESC LIMIT 1), 0) AS latest_value
+           FROM habit_goals hg WHERE hg.patient_id = ? AND hg.nutritionist_id = ?
+             AND hg.active = 1 ORDER BY hg.created_at DESC""",
+        (patient_id, g.user["id"]),
+    ).fetchall()
+    checkins = db.execute(
+        """SELECT * FROM weekly_checkins WHERE patient_id = ?
+           ORDER BY week_start DESC LIMIT 4""",
+        (patient_id,),
+    ).fetchall()
+    comments = db.execute(
+        """SELECT dc.* FROM diary_comments dc JOIN food_diary fd ON fd.id = dc.diary_id
+           WHERE fd.patient_id = ? AND dc.nutritionist_id = ? ORDER BY dc.created_at""",
+        (patient_id, g.user["id"]),
+    ).fetchall()
+    comments_by_diary = {}
+    for comment in comments:
+        comments_by_diary.setdefault(comment["diary_id"], []).append(comment)
     return render_template(
-        "patient_detail.html", patient=patient, plans=plans, weights=weights, diary=diary
+        "patient_detail.html",
+        patient=patient,
+        plans=plans,
+        weights=weights,
+        diary=diary,
+        habits=habits,
+        checkins=checkins,
+        comments_by_diary=comments_by_diary,
     )
 
 
@@ -526,6 +592,31 @@ def _number(value, default=0.0) -> float:
         return max(0.0, float(str(value or "0").replace(",", ".")))
     except ValueError:
         return default
+
+
+def _rating(value, default=3) -> int:
+    return min(5, max(1, int(_number(value, default))))
+
+
+def _diary_photo(upload):
+    if not upload or not upload.filename:
+        return None
+    extension = Path(secure_filename(upload.filename)).suffix.lower()
+    expected_mime = ALLOWED_DIARY_PHOTOS.get(extension)
+    content = upload.read()
+    signatures = {
+        ".jpg": (b"\xff\xd8\xff",),
+        ".jpeg": (b"\xff\xd8\xff",),
+        ".png": (b"\x89PNG\r\n\x1a\n",),
+        ".webp": (b"RIFF",),
+    }
+    valid_signature = any(content.startswith(value) for value in signatures.get(extension, ()))
+    if extension == ".webp":
+        valid_signature = valid_signature and len(content) >= 12 and content[8:12] == b"WEBP"
+    if not expected_mime or not valid_signature or len(content) > 5 * 1024 * 1024:
+        raise ValueError
+    stored_name = f"{secrets.token_hex(24)}{extension}"
+    return stored_name, expected_mime, content
 
 
 @bp.route("/planos/novo/<int:patient_id>", methods=["GET", "POST"])
@@ -722,15 +813,39 @@ def diary():
         if not meal_name or not description:
             flash("Informe a refeição e o que foi consumido.", "error")
         else:
-            db.execute(
-                """INSERT INTO food_diary (patient_id, meal_name, description, adherence, hunger, recorded_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+            try:
+                photo = _diary_photo(request.files.get("photo"))
+            except ValueError:
+                flash("Envie uma foto JPG, PNG ou WebP válida de até 5 MB.", "error")
+                return redirect(url_for("main.diary"))
+            water_ml = min(10000, int(_number(request.form.get("water_ml"))))
+            cursor = db.execute(
+                """INSERT INTO food_diary
+                   (patient_id, meal_name, description, adherence, hunger, mood,
+                    satiety, water_ml, symptoms, photo_stored_name, photo_mime,
+                    photo_size_bytes, recorded_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    g.user["id"], meal_name, description,
+                    g.user["id"], meal_name, description[:2000],
                     1 if request.form.get("adherence") == "1" else 0,
-                    int(_number(request.form.get("hunger"), 3)),
+                    _rating(request.form.get("hunger")),
+                    _rating(request.form.get("mood")),
+                    _rating(request.form.get("satiety")),
+                    water_ml,
+                    request.form.get("symptoms", "").strip()[:500],
+                    photo[0] if photo else None,
+                    photo[1] if photo else None,
+                    len(photo[2]) if photo else None,
                     request.form.get("recorded_at") or datetime.now().strftime("%Y-%m-%dT%H:%M"),
                 ),
+            )
+            if photo:
+                upload_path = Path(current_app.config["DIARY_UPLOAD_FOLDER"]) / photo[0]
+                upload_path.write_bytes(photo[2])
+            db.execute(
+                """INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details)
+                   VALUES (?, 'journey.diary_created', 'food_diary', ?, ?)""",
+                (g.user["id"], cursor.lastrowid, meal_name),
             )
             db.commit()
             flash("Refeição registrada no diário.", "success")
@@ -739,7 +854,217 @@ def diary():
         "SELECT * FROM food_diary WHERE patient_id = ? ORDER BY recorded_at DESC LIMIT 30",
         (g.user["id"],),
     ).fetchall()
-    return render_template("diary.html", entries=entries)
+    comments = db.execute(
+        """SELECT dc.*, u.name AS nutritionist_name FROM diary_comments dc
+           JOIN users u ON u.id = dc.nutritionist_id
+           JOIN food_diary fd ON fd.id = dc.diary_id
+           WHERE fd.patient_id = ? ORDER BY dc.created_at""",
+        (g.user["id"],),
+    ).fetchall()
+    comments_by_diary = {}
+    for comment in comments:
+        comments_by_diary.setdefault(comment["diary_id"], []).append(comment)
+    week_summary = db.execute(
+        """SELECT COUNT(*) AS entries, COALESCE(SUM(water_ml), 0) AS water_ml,
+                  COALESCE(ROUND(AVG(adherence) * 100), 0) AS adherence
+           FROM food_diary WHERE patient_id = ?
+             AND datetime(recorded_at) >= datetime('now', '-7 days')""",
+        (g.user["id"],),
+    ).fetchone()
+    return render_template(
+        "diary.html",
+        entries=entries,
+        comments_by_diary=comments_by_diary,
+        week_summary=week_summary,
+    )
+
+
+@bp.get("/diario/<int:entry_id>/foto")
+@login_required
+def diary_photo(entry_id: int):
+    db = get_db()
+    entry = db.execute("SELECT * FROM food_diary WHERE id = ?", (entry_id,)).fetchone()
+    if not entry or not entry["photo_stored_name"]:
+        abort(404)
+    allowed = entry["patient_id"] == g.user["id"]
+    if g.user["role"] == "nutritionist":
+        allowed = db.execute(
+            """SELECT 1 FROM professional_patients
+               WHERE nutritionist_id = ? AND patient_id = ? AND status = 'active'""",
+            (g.user["id"], entry["patient_id"]),
+        ).fetchone() is not None
+    if not allowed:
+        abort(404)
+    response = send_from_directory(
+        current_app.config["DIARY_UPLOAD_FOLDER"],
+        entry["photo_stored_name"],
+        mimetype=entry["photo_mime"],
+        as_attachment=False,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@bp.post("/diario/<int:entry_id>/comentarios")
+@role_required("nutritionist")
+def diary_comment(entry_id: int):
+    db = get_db()
+    entry = db.execute(
+        """SELECT fd.* FROM food_diary fd
+           JOIN professional_patients pp ON pp.patient_id = fd.patient_id
+           WHERE fd.id = ? AND pp.nutritionist_id = ? AND pp.status = 'active'""",
+        (entry_id, g.user["id"]),
+    ).fetchone()
+    if not entry:
+        abort(404)
+    content = request.form.get("content", "").strip()
+    if len(content) < 3:
+        flash("Escreva um comentário com pelo menos 3 caracteres.", "error")
+    else:
+        cursor = db.execute(
+            """INSERT INTO diary_comments (diary_id, nutritionist_id, content)
+               VALUES (?, ?, ?)""",
+            (entry_id, g.user["id"], content[:500]),
+        )
+        db.execute(
+            """INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details)
+               VALUES (?, 'journey.diary_commented', 'diary_comment', ?, ?)""",
+            (g.user["id"], cursor.lastrowid, f"diary:{entry_id}"),
+        )
+        db.commit()
+        flash("Comentário enviado ao paciente.", "success")
+    return redirect(url_for("main.patient_detail", patient_id=entry["patient_id"]) + "#diario")
+
+
+@bp.get("/jornada")
+@role_required("patient")
+def journey():
+    db = get_db()
+    week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+    goals = db.execute(
+        """SELECT hg.*,
+                  CASE WHEN hg.frequency = 'weekly'
+                    THEN COALESCE((SELECT SUM(value) FROM habit_logs hl
+                                   WHERE hl.goal_id = hg.id AND hl.recorded_on >= ?), 0)
+                    ELSE COALESCE((SELECT value FROM habit_logs hl
+                                   WHERE hl.goal_id = hg.id
+                                     AND hl.recorded_on = date('now', 'localtime')), 0)
+                  END
+                  AS today_value
+           FROM habit_goals hg WHERE hg.patient_id = ? AND hg.active = 1
+           ORDER BY hg.created_at""",
+        (week_start, g.user["id"]),
+    ).fetchall()
+    checkins = db.execute(
+        """SELECT * FROM weekly_checkins WHERE patient_id = ?
+           ORDER BY week_start DESC LIMIT 8""",
+        (g.user["id"],),
+    ).fetchall()
+    current_checkin = next((item for item in checkins if item["week_start"] == week_start), None)
+    summary = db.execute(
+        """SELECT COUNT(*) AS diary_entries,
+                  COALESCE(ROUND(AVG(mood), 1), 0) AS mood,
+                  COALESCE(SUM(water_ml), 0) AS water_ml
+           FROM food_diary WHERE patient_id = ?
+             AND datetime(recorded_at) >= datetime('now', '-7 days')""",
+        (g.user["id"],),
+    ).fetchone()
+    return render_template(
+        "journey.html",
+        goals=goals,
+        checkins=checkins,
+        current_checkin=current_checkin,
+        summary=summary,
+    )
+
+
+@bp.post("/jornada/check-in")
+@role_required("patient")
+def save_checkin():
+    db = get_db()
+    week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+    values = (
+        _rating(request.form.get("energy")),
+        _rating(request.form.get("sleep_quality")),
+        _rating(request.form.get("confidence")),
+        request.form.get("wins", "").strip()[:1000],
+        request.form.get("challenges", "").strip()[:1000],
+        request.form.get("support_needed", "").strip()[:1000],
+    )
+    db.execute(
+        """INSERT INTO weekly_checkins
+           (patient_id, week_start, energy, sleep_quality, confidence, wins,
+            challenges, support_needed)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(patient_id, week_start) DO UPDATE SET
+             energy = excluded.energy, sleep_quality = excluded.sleep_quality,
+             confidence = excluded.confidence, wins = excluded.wins,
+             challenges = excluded.challenges, support_needed = excluded.support_needed,
+             updated_at = CURRENT_TIMESTAMP""",
+        (g.user["id"], week_start, *values),
+    )
+    db.commit()
+    flash("Check-in semanal salvo. Obrigado por compartilhar sua semana.", "success")
+    return redirect(url_for("main.journey"))
+
+
+@bp.post("/jornada/habitos/<int:goal_id>")
+@role_required("patient")
+def log_habit(goal_id: int):
+    db = get_db()
+    goal = db.execute(
+        "SELECT * FROM habit_goals WHERE id = ? AND patient_id = ? AND active = 1",
+        (goal_id, g.user["id"]),
+    ).fetchone()
+    if not goal:
+        abort(404)
+    value = _number(request.form.get("value"))
+    if value < 0 or value > goal["target_value"] * 10:
+        flash("Informe um valor válido para o hábito.", "error")
+    else:
+        db.execute(
+            """INSERT INTO habit_logs (goal_id, patient_id, value, recorded_on, note)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(goal_id, recorded_on) DO UPDATE SET
+                 value = excluded.value, note = excluded.note""",
+            (
+                goal_id, g.user["id"], value, date.today().isoformat(),
+                request.form.get("note", "").strip()[:300],
+            ),
+        )
+        db.commit()
+        flash("Progresso do hábito atualizado.", "success")
+    return redirect(url_for("main.journey"))
+
+
+@bp.post("/pacientes/<int:patient_id>/habitos")
+@role_required("nutritionist")
+def create_habit(patient_id: int):
+    patient = _patient_for_nutritionist(patient_id)
+    if not patient:
+        abort(404)
+    title = request.form.get("title", "").strip()
+    unit = request.form.get("unit", "").strip()
+    target = _number(request.form.get("target_value"))
+    frequency = request.form.get("frequency", "daily")
+    if len(title) < 3 or not unit or target <= 0 or frequency not in {"daily", "weekly"}:
+        flash("Informe título, meta, unidade e frequência válidos.", "error")
+    else:
+        db = get_db()
+        cursor = db.execute(
+            """INSERT INTO habit_goals
+               (nutritionist_id, patient_id, title, target_value, unit, frequency)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (g.user["id"], patient_id, title[:120], target, unit[:30], frequency),
+        )
+        db.execute(
+            """INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details)
+               VALUES (?, 'journey.habit_created', 'habit_goal', ?, ?)""",
+            (g.user["id"], cursor.lastrowid, title[:120]),
+        )
+        db.commit()
+        flash("Meta de hábito compartilhada com o paciente.", "success")
+    return redirect(url_for("main.patient_detail", patient_id=patient_id) + "#habitos")
 
 
 @bp.route("/evolucao", methods=["GET", "POST"])

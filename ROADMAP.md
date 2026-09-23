@@ -1,7 +1,7 @@
 # Roadmap do Nexus Nutra
 
 > Documento estratégico de produto e engenharia.  
-> Atualizado em 22 de setembro de 2026, após a entrega da v1.4.0.
+> Atualizado em 23 de setembro de 2026, após a entrega da v1.5.0.
 
 ## Visão
 
@@ -20,16 +20,17 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 
 ## Estado atual
 
-| Área | Entregue até a v1.4.0 |
+| Área | Entregue até a v1.5.0 |
 |---|---|
 | Contas | Cadastro, login, perfis de nutricionista e paciente |
 | Pacientes | Vínculo, busca, anamnese versionada, antropometria, evolução, consentimentos, anexos e relatório clínico |
 | Planos | Criação, dez indicadores nutricionais, metas, alertas, revisões, modelos e impressão/PDF |
 | Alimentos | Catálogo inicial TACO, alimentos personalizados, receitas, alergênicos, medidas e cálculo por quantidade |
-| Acompanhamento | Diário alimentar e evolução de peso |
+| Acompanhamento | Diário com fotos e bem-estar, hábitos, check-ins, comentários e evolução de peso |
 | Atendimento | Agenda segura, disponibilidade, bloqueios, estados, histórico, ICS, consultas online e chat |
 | Segurança | CSRF, hash de senha, verificação de e-mail, recuperação segura, HTTPS para teleconsulta, bloqueio de login, expiração/revogação de sessão, consentimento e auditoria inicial |
-| Qualidade | Blueprints de autenticação, clínica e nutrição, migrations numeradas, 21 testes, Ruff e GitHub Actions |
+| Experiência | PWA instalável, navegação inferior móvel, indicador de conexão e fallback offline seguro |
+| Qualidade | Blueprints de autenticação, clínica e nutrição, migrations numeradas, 24 testes, Ruff e GitHub Actions |
 
 ## Diagnóstico de lacunas
 
@@ -41,9 +42,9 @@ O sistema deve apoiar decisões profissionais, nunca gerar diagnóstico ou presc
 | P1 | Lembretes da agenda ainda são internos e não possuem entrega por e-mail, WhatsApp ou push | Menor alcance das automações |
 | P1 | Falta política operacional de retenção, exportação e exclusão do prontuário | Governança clínica ainda incompleta |
 | P1 | Catálogo ainda não possui importação controlada TACO/TBCA, sinônimos ou fontes versionadas | Cobertura e rastreabilidade nutricional ainda são limitadas |
-| P1 | Diário não aceita fotos, sintomas, humor, água, atividade ou comentários do profissional | Menor contexto clínico e adesão |
+| P1 | Diário ainda não registra atividade física nem oferece análise consolidada versus metas do plano | Contexto longitudinal ainda incompleto |
 | P2 | Não há equipe, unidades, permissões granulares, financeiro ou indicadores da clínica | Limita operação multiprofissional |
-| P2 | Não há notificações push, PWA, API pública ou integração com calendários e wearables | Experiência desconectada |
+| P2 | Não há notificações push, API pública ou integração com calendários e wearables | Experiência ainda parcialmente desconectada |
 | P3 | Não há multiempresa, planos comerciais, cobrança recorrente ou personalização por clínica | Ainda não opera como SaaS |
 
 ## Sequência recomendada
@@ -53,7 +54,7 @@ flowchart TD
     A["v1.2 · Agenda Segura ✅"] --> S["v1.2.1 · Identidade Segura ✅"]
     S --> B["v1.3 · Prontuário Clínico ✅"]
     B --> C["v1.4 · Inteligência Nutricional ✅"]
-    C --> D["v1.5 · Engajamento PWA"]
+    C --> D["v1.5 · Engajamento PWA ✅"]
     D --> E["v1.6 · Gestão de Clínicas"]
     E --> F["v1.7 · Integrações"]
     F --> G["v1.8 · Produção e Escala"]
@@ -186,29 +187,29 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### v1.5.0 — Jornada do Paciente e PWA
 
+**Status:** entregue em 23 de setembro de 2026. Notificações push, lembretes externos e rascunhos offline permanecem no backlog porque exigem consentimento, filas e política de sincronização.
+
 **Objetivo:** aumentar adesão e facilitar registros no celular sem exigir aplicativo nativo.
 
 #### Entregas
 
 - Progressive Web App instalável;
 - modo responsivo refinado e navegação inferior no celular;
-- notificações push com consentimento;
-- lembretes de refeições, água, consultas e pesagem;
 - diário com foto, humor, fome, saciedade, sintomas e observações;
 - metas de hábitos configuráveis;
 - comentários do nutricionista nos registros;
 - check-in semanal;
 - painel de adesão com tendências, sem linguagem punitiva;
-- atalhos para repetir refeições frequentes;
-- funcionamento offline limitado para leitura e rascunhos;
-- preferências de acessibilidade e redução de movimento.
+- fallback offline para o shell público, sem cache de dados de saúde;
+- indicador de conectividade e fluxo de instalação;
+- ícone próprio e atalhos do aplicativo.
 
 #### Definição de pronto
 
-- permissões de notificação são opcionais e revogáveis;
-- dados offline são criptografados quando tecnicamente aplicável;
-- sincronização trata conflitos sem perder registros;
-- desempenho móvel e acessibilidade avaliados.
+- páginas autenticadas e dados clínicos não são persistidos pelo service worker;
+- fotos são validadas e servidas apenas a usuários autorizados;
+- criação de hábitos e comentários profissionais são auditados;
+- fluxos de jornada possuem cobertura automatizada.
 
 **Complexidade:** média/alta · **Prioridade:** P1/P2
 
@@ -371,7 +372,7 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer agora
 
-1. iniciar a jornada do paciente e a base PWA da v1.5.0;
+1. iniciar organizações, unidades e RBAC da v1.6.0;
 2. criar testes de navegador das jornadas críticas;
 3. definir retenção, exportação e exclusão de dados;
 4. ampliar o catálogo com importação controlada e fontes versionadas;
@@ -379,11 +380,11 @@ Segurança, acessibilidade, testes e privacidade são trilhas contínuas e fazem
 
 ### Fazer em seguida
 
-1. PWA instalável e navegação móvel refinada;
-2. fotos, sintomas, humor, água e saciedade no diário;
-3. check-ins e comentários do nutricionista;
-4. notificações consentidas e lembretes externos;
-5. relatórios de ingestão em PDF e CSV.
+1. equipes, unidades e permissões granulares;
+2. agenda compartilhada e indicadores operacionais;
+3. notificações consentidas e lembretes externos;
+4. relatórios de ingestão em PDF e CSV;
+5. importação TACO/TBCA controlada e versionada.
 
 ### Adiar até existir base operacional
 

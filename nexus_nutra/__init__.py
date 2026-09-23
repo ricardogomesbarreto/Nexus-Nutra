@@ -34,6 +34,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         CLINICAL_UPLOAD_FOLDER=os.getenv(
             "CLINICAL_UPLOAD_FOLDER", str(Path(app.instance_path) / "clinical_uploads")
         ),
+        DIARY_UPLOAD_FOLDER=os.getenv(
+            "DIARY_UPLOAD_FOLDER", str(Path(app.instance_path) / "diary_uploads")
+        ),
         MAX_CONTENT_LENGTH=5 * 1024 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -76,6 +79,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     Path(app.config["CLINICAL_UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+    Path(app.config["DIARY_UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     app.teardown_appcontext(close_db)
     app.register_blueprint(bp)
     app.register_blueprint(auth_bp)

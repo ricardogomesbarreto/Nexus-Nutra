@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Minha jornada — Nexus Nutra{% endblock %}
+{% block content %}
+<header class="page-header with-action journey-hero">
+  <div><span class="eyebrow">JORNADA DO PACIENTE · V1.5</span><h1>Seu progresso além da balança.</h1><p>Hábitos possíveis, contexto real e uma conversa mais clara com seu nutricionista.</p></div>
+  <a class="button button-primary" href="{{ url_for('main.diary') }}">{{ icon('plus') }} Registrar refeição</a>
+</header>
+
+<section class="journey-summary">
+  <article><span>{{ icon('diary') }}</span><div><strong>{{ summary.diary_entries }}</strong><small>registros em 7 dias</small></div></article>
+  <article><span>{{ icon('mood') }}</span><div><strong>{{ summary.mood or '—' }}</strong><small>humor médio de 5</small></div></article>
+  <article><span>{{ icon('water') }}</span><div><strong>{{ '%.1f'|format(summary.water_ml / 1000) }}</strong><small>litros registrados</small></div></article>
+  <article><span>{{ icon('habit') }}</span><div><strong>{{ goals|length }}</strong><small>hábitos ativos</small></div></article>
+</section>
+
+<div class="content-grid journey-grid">
+  <section id="habitos" class="panel">
+    <div class="panel-header"><div><span class="section-kicker">HOJE</span><h2>Meus hábitos</h2><p>Registre o que conseguiu fazer, sem julgamentos.</p></div></div>
+    {% if goals %}<div class="habit-list">
+      {% for goal in goals %}
+      {% set progress = ([goal.today_value / goal.target_value * 100, 100]|min) if goal.target_value else 0 %}
+      <article>
+        <div class="habit-heading"><span>{{ icon('habit') }}</span><div><h3>{{ goal.title }}</h3><p>Meta {{ 'diária' if goal.frequency == 'daily' else 'semanal' }}: {{ goal.target_value|round(1) }} {{ goal.unit }}</p></div><strong>{{ progress|round|int }}%</strong></div>
+        <div class="habit-progress"><i style="width: {{ progress }}%"></i></div>
+        <form method="post" action="{{ url_for('main.log_habit', goal_id=goal.id) }}" class="habit-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Realizado<input type="number" name="value" min="0" step="0.1" value="{{ goal.today_value }}" required></label><label>Observação<input name="note" maxlength="300" placeholder="Opcional"></label><button class="button button-secondary button-sm" type="submit">Atualizar</button></form>
+      </article>
+      {% endfor %}
+    </div>{% else %}<div class="empty-state"><span>{{ icon('habit') }}</span><h2>Nenhum hábito definido</h2><p>Seu nutricionista poderá criar metas simples e personalizadas para sua rotina.</p></div>{% endif %}
+  </section>
+
+  <aside id="check-in" class="panel checkin-panel">
+    <div class="panel-header"><div><span class="section-kicker">UMA VEZ POR SEMANA</span><h2>Check-in semanal</h2><p>{{ 'Atualize como foi sua semana.' if current_checkin else 'Reserve dois minutos para você.' }}</p></div><span class="checkin-status {{ 'done' if current_checkin }}">{{ icon('check' if current_checkin else 'clock') }}</span></div>
+    <form method="post" action="{{ url_for('main.save_checkin') }}" class="checkin-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for name, label, value in [('energy','Energia',current_checkin.energy if current_checkin else 3),('sleep_quality','Qualidade do sono',current_checkin.sleep_quality if current_checkin else 3),('confidence','Confiança na rotina',current_checkin.confidence if current_checkin else 3)] %}<label>{{ label }} <span data-range-value>{{ value }}</span><input type="range" name="{{ name }}" min="1" max="5" value="{{ value }}" data-range></label>{% endfor %}
+      <label>O que funcionou bem?<textarea name="wins" rows="3" placeholder="Celebre os pequenos avanços...">{{ current_checkin.wins if current_checkin else '' }}</textarea></label>
+      <label>O que foi difícil?<textarea name="challenges" rows="3" placeholder="Conte o contexto, sem culpa...">{{ current_checkin.challenges if current_checkin else '' }}</textarea></label>
+      <label>Como podemos ajudar?<textarea name="support_needed" rows="3" placeholder="Dúvidas ou apoio que você precisa...">{{ current_checkin.support_needed if current_checkin else '' }}</textarea></label>
+      <button class="button button-primary button-block" type="submit">{{ icon('check') }} Salvar check-in</button>
+    </form>
+  </aside>
+</div>
+
+{% if checkins %}<section class="panel checkin-history"><div class="panel-header"><div><h2>Histórico de check-ins</h2><p>Sua evolução de contexto ao longo das semanas.</p></div></div><div class="checkin-cards">{% for item in checkins %}<article><small>Semana de {{ item.week_start|brdate }}</small><div><span>Energia <b>{{ item.energy }}/5</b></span><span>Sono <b>{{ item.sleep_quality }}/5</b></span><span>Confiança <b>{{ item.confidence }}/5</b></span></div>{% if item.wins %}<p><strong>Avanço:</strong> {{ item.wins }}</p>{% endif %}</article>{% endfor %}</div></section>{% endif %}
+{% endblock %}

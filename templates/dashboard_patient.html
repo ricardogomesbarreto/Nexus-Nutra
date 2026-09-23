@@ -7,6 +7,8 @@
   <div><span class="eyebrow light">FOCO DE HOJE</span><h2>{{ g.user.goal or 'Construa uma rotina possível e consistente.' }}</h2><p>Use o diário para compartilhar como foi seu dia com o nutricionista.</p><div class="welcome-actions"><a class="button button-light" href="{{ url_for('main.diary') }}">Abrir diário</a>{% if plan %}<a href="{{ url_for('main.plan_detail', plan_id=plan.id) }}">Ver plano alimentar {{ icon('arrow-right') }}</a>{% endif %}</div></div><div class="wellness-orbit"><span>{{ icon('food') }}</span></div>
 </section>
 
+<section class="journey-callout {{ 'complete' if checkin_done }}"><span>{{ icon('journey') }}</span><div><small>JORNADA DA SEMANA</small><h2>{{ 'Check-in concluído' if checkin_done else 'Como foi sua semana?' }}</h2><p>{{ active_habits }} hábito(s) ativo(s) · {{ 'Você pode atualizar quando quiser.' if checkin_done else 'Compartilhe energia, sono e confiança em dois minutos.' }}</p></div><a class="button {{ 'button-secondary' if checkin_done else 'button-primary' }}" href="{{ url_for('main.journey') }}">{{ 'Ver jornada' if checkin_done else 'Fazer check-in' }} {{ icon('arrow-right') }}</a></section>
+
 <section class="stat-grid patient-stats">
   <article class="stat-card"><span class="stat-icon green">{{ icon('diary') }}</span><div><small>Registros hoje</small><strong>{{ diary_today }}</strong><a href="{{ url_for('main.diary') }}">Continuar diário {{ icon('arrow-right') }}</a></div></article>
   <article class="stat-card"><span class="stat-icon blue">{{ icon('weight') }}</span><div><small>Peso atual</small><strong>{{ ('%.1f'|format(weights[-1].weight)) if weights else '—' }} <em>{{ 'kg' if weights else '' }}</em></strong><a href="{{ url_for('main.progress') }}">Atualizar {{ icon('arrow-right') }}</a></div></article>
