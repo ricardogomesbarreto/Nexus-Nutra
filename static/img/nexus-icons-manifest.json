@@ -1,0 +1,26 @@
+{
+  "name": "Nexus Line — Nutra",
+  "family": "Nexus Line",
+  "product": "Nexus Nutra",
+  "version": "1.0.0",
+  "grid": 24,
+  "strokeWidth": 1.75,
+  "strokeLinecap": "round",
+  "strokeLinejoin": "round",
+  "colorMode": "currentColor",
+  "palette": {
+    "primary": "#197A50",
+    "accent": "#76C043",
+    "canvas": "#F5F8F6"
+  },
+  "sprite": "nexus-icons.svg",
+  "categories": {
+    "navigation": ["dashboard", "search", "menu", "arrow-left", "arrow-right", "chevron-right"],
+    "actions": ["plus", "send", "attachment", "refresh", "edit", "close", "check", "download"],
+    "people": ["patients", "user", "message", "logout"],
+    "nutrition": ["food", "plan", "recipe", "water"],
+    "clinical": ["clinical", "measure", "weight", "privacy", "alert"],
+    "journey": ["diary", "trend", "journey", "habit", "mood", "photo", "spark"],
+    "operations": ["calendar", "clock", "video", "document"]
+  }
+}

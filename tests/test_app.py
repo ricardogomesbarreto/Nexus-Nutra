@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import sqlite3
+import xml.etree.ElementTree as ET
 from io import BytesIO
 from urllib.parse import urlsplit
 
@@ -778,10 +780,25 @@ def test_clinical_attachment_validates_type_and_restricts_download(app, client, 
 
 def test_original_icon_system_is_available_and_used(client):
     sprite = client.get("/static/img/nexus-icons.svg")
+    manifest_response = client.get("/static/img/nexus-icons-manifest.json")
     home = client.get("/")
     assert sprite.status_code == 200
-    assert sprite.data.count(b"<symbol") >= 25
-    assert b'id="icon-dashboard"' in sprite.data
+    assert manifest_response.status_code == 200
+
+    root = ET.fromstring(sprite.data)
+    symbols = root.findall("{http://www.w3.org/2000/svg}symbol")
+    symbol_ids = [symbol.attrib["id"].removeprefix("icon-") for symbol in symbols]
+    assert len(symbol_ids) == 38
+    assert len(symbol_ids) == len(set(symbol_ids))
+    assert all(symbol.attrib["viewBox"] == "0 0 24 24" for symbol in symbols)
+
+    manifest = json.loads(manifest_response.data)
+    catalog = [name for names in manifest["categories"].values() for name in names]
+    assert manifest["family"] == "Nexus Line"
+    assert manifest["product"] == "Nexus Nutra"
+    assert manifest["grid"] == 24
+    assert manifest["strokeWidth"] == 1.75
+    assert sorted(catalog) == sorted(symbol_ids)
     assert b"nexus-icons.svg#icon-patients" in home.data
 
 

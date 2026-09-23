@@ -13,7 +13,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.1-15211C?logo=flask&logoColor=white">
   <img alt="PostgreSQL planejado" src="https://img.shields.io/badge/PostgreSQL-produ%C3%A7%C3%A3o-336791?logo=postgresql&logoColor=white">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.5.1-76C043">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.5.2-76C043">
   <img alt="CI" src="https://github.com/ricardogomesbarreto/Nexus-Nutra/actions/workflows/ci.yml/badge.svg">
 </p>
 
@@ -25,7 +25,15 @@ Esta versão substitui o antigo protótipo LifeTrack e estabelece uma base segur
 
 > **Importante:** o sistema é uma ferramenta de apoio. Cálculos, planos e condutas devem ser revisados por nutricionista legalmente habilitado. Antes de uso assistencial em produção, valide requisitos jurídicos, LGPD, retenção e certificações aplicáveis ao seu contexto.
 
-## Novidades da v1.5.1 — Base SaaS e segurança de produção
+## Novidades da v1.5.2 — Nexus Line
+
+- 38 ícones redesenhados na linguagem visual comum do ecossistema Nexus;
+- grade de 24 px, traço de 1,75 px e terminações arredondadas em toda a interface;
+- vocabulário específico para nutrição, clínica e jornada do paciente;
+- manifesto versionado, categorias semânticas e validação automatizada do sprite;
+- documentação de acessibilidade, identidade e regras para evolução da biblioteca.
+
+## Base SaaS e segurança de produção — v1.5.1
 
 - tabela comercial proposta com planos Essencial, Profissional e Clínica em reais;
 - alternância acessível entre cobrança mensal e anual;
@@ -179,6 +187,7 @@ Nexus-Nutra/
 │   ├── img/
 │   │   ├── nexus-app-icon.svg
 │   │   ├── nexus-icons.svg
+│   │   ├── nexus-icons-manifest.json
 │   │   └── nexus-nutra-logo-transparent.png
 │   ├── js/
 │   │   ├── app.js
@@ -192,6 +201,7 @@ Nexus-Nutra/
 ├── tests/
 ├── docs/
 │   ├── BACKUP_RESTORE.md
+│   ├── ICONOGRAFIA.md
 │   └── PRODUCTION_ARCHITECTURE.md
 ├── CHANGELOG.md
 ├── ROADMAP.md
@@ -223,6 +233,7 @@ flowchart LR
 | v1.4.0 | Inteligência Nutricional ✅ | receitas, alimentos personalizados, alertas, nutrientes e planos versionados |
 | v1.5.0 | Jornada do Paciente ✅ | PWA, fotos privadas, hábitos, check-ins e comentários |
 | v1.5.1 | Base SaaS Segura ✅ | Hostinger, arquitetura PostgreSQL, preços BRL e hardening |
+| v1.5.2 | Nexus Line ✅ | iconografia autoral padronizada para o ecossistema Nexus |
 | v1.6.0 | Persistência de Produção | PostgreSQL, migrações, backup, restore e observabilidade |
 | v1.7.0 | Gestão de Clínicas | equipes, unidades, permissões, financeiro e indicadores |
 | v1.8.0 | Integrações | API, calendários, videoconferência, webhooks e wearables |
@@ -245,7 +256,7 @@ O catálogo inicial utiliza uma seleção de valores por 100 g da **Tabela Brasi
 
 ## Identidade
 
-**Nexus Nutra** faz parte da linha de aplicações Nexus e utiliza uma identidade verde, clara e acolhedora para representar conexão, equilíbrio e evolução. A marca incluída neste repositório pertence ao projeto.
+**Nexus Nutra** faz parte da linha de aplicações Nexus e utiliza uma identidade verde, clara e acolhedora para representar conexão, equilíbrio e evolução. A marca incluída neste repositório pertence ao projeto. A interface adota a família autoral **Nexus Line**, com vocabulário próprio de nutrição e regras descritas no [guia de iconografia](docs/ICONOGRAFIA.md).
 
 ## Autor
 

@@ -10,6 +10,21 @@ Todas as mudanças relevantes do Nexus Nutra são registradas neste documento.
 - notificações consentidas e lembretes externos;
 - testes de navegador para os fluxos críticos de identidade e agenda.
 
+## [1.5.2] — 2026-09-23 — Nexus Line
+
+### Alterado
+
+- os 38 ícones da interface foram redesenhados em grade de 24 px, com traço de 1,75 px e terminações arredondadas;
+- símbolos genéricos passaram a compartilhar a linguagem visual do ecossistema Nexus;
+- símbolos clínicos, nutricionais e de jornada preservam a proposta específica do Nexus Nutra;
+- o cache do PWA foi versionado para entregar a nova biblioteca sem reutilizar o sprite anterior.
+
+### Adicionado
+
+- manifesto JSON com paleta, categorias e contrato técnico da biblioteca;
+- guia de iconografia com regras de uso, acessibilidade e matriz visual do ecossistema;
+- teste estrutural que valida os 38 identificadores, a grade e a correspondência com o manifesto.
+
 ## [1.5.1] — 2026-09-23 — Base SaaS e Segurança de Produção
 
 ### Adicionado

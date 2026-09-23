@@ -1,4 +1,4 @@
-const CACHE_NAME = "nexus-nutra-shell-v1.5.0";
+const CACHE_NAME = "nexus-nutra-shell-v1.5.2";
 const APP_SHELL = [
   "/offline",
   "/static/css/app.css",

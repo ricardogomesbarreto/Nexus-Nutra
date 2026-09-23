@@ -24,7 +24,7 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 img { display: block; max-width: 100%; }
-.app-icon { display: inline-block; width: 1.15em; height: 1.15em; flex: 0 0 auto; fill: currentColor; vertical-align: -.16em; }
+.app-icon { display: inline-block; width: 1.15em; height: 1.15em; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.16em; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3, strong { font-family: "Manrope", sans-serif; }
 .hidden { display: none !important; }
